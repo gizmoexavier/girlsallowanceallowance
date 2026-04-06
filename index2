@@ -1,0 +1,1254 @@
+<!--
+  SUPABASE SETUP — run these SQL queries in Supabase SQL Editor before first use:
+
+  alter table transactions enable row level security;
+  create policy "Allow anon read" on transactions for select using (true);
+  create policy "Allow anon insert" on transactions for insert with check (true);
+  create policy "Allow anon delete" on transactions for delete using (true);
+  create policy "Allow anon update" on transactions for update using (true);
+
+  alter table settings enable row level security;
+  create policy "Allow anon read" on settings for select using (true);
+  create policy "Allow anon update" on settings for update using (true);
+
+  insert into settings (girl, weekly_amount) values ('Olivia', 11), ('Charlotte', 4)
+  on conflict (girl) do nothing;
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bank of Tinsley</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Arvo:wght@700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="manifest" href="https://gizmoexavier.github.io/girlsallowanceallowance/manifest.json">
+<link rel="apple-touch-icon" href="https://gizmoexavier.github.io/girlsallowanceallowance/BankofTinsleyAppIcon.png">
+<style>
+  :root {
+    --olivia: #FFB7D9;
+    --charlotte: #C0FFCB;
+    --bg: #0f0f13;
+    --surface: #1a1a22;
+    --surface2: #22222e;
+    --surface3: #2a2a38;
+    --text: #f0f0f5;
+    --text-muted: #8888a0;
+    --border: #33334a;
+    --accent: var(--olivia);
+    --danger: #ff6b6b;
+    --warn: #ffcc66;
+    --radius: 14px;
+    --radius-sm: 8px;
+    --transition: 0.18s ease;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Open Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 16px;
+    line-height: 1.5;
+    overscroll-behavior: none;
+  }
+
+  h1, h2, h3, .balance-amount { font-family: 'Arvo', serif; }
+
+  .app {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 0 100px;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+    padding: 12px 16px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .logo-wrap img {
+    height: 36px;
+    width: auto;
+    display: block;
+  }
+
+  .gear-btn {
+    width: 44px; height: 44px;
+    background: var(--surface2);
+    border: none; border-radius: 50%;
+    color: var(--text-muted);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .tab-btn {
+    padding: 12px;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    font-family: 'Arvo', serif;
+    font-size: 17px;
+    cursor: pointer;
+    color: var(--text-muted);
+    border-bottom: 3px solid transparent;
+    transition: all var(--transition);
+  }
+
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+
+  /* ── CONTENT ── */
+  .content { padding: 16px; }
+
+  /* ── BALANCE CARD ── */
+  .balance-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .balance-card::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    pointer-events: none;
+  }
+
+  .balance-label {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .balance-amount {
+    font-size: 48px;
+    line-height: 1;
+    color: var(--accent);
+    margin-bottom: 4px;
+    font-family: 'Arvo', serif;
+  }
+
+  .balance-name { font-size: 14px; color: var(--text-muted); }
+
+  .auto-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 14px;
+    letter-spacing: 0.2px;
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Open Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity var(--transition), transform var(--transition);
+    min-height: 52px;
+  }
+  .btn:active { opacity: 0.8; transform: scale(0.98); }
+
+  .btn-primary {
+    background: color-mix(in srgb, var(--accent) 20%, var(--surface2));
+    color: var(--accent);
+    border: 1.5px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+
+  .btn-sm {
+    width: auto;
+    padding: 8px 16px;
+    font-size: 14px;
+    min-height: 40px;
+    border-radius: var(--radius-sm);
+  }
+
+  .btn-danger {
+    background: color-mix(in srgb, var(--danger) 15%, var(--surface2));
+    color: var(--danger);
+    border: 1.5px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  }
+
+  .btn-ghost {
+    background: var(--surface2);
+    color: var(--text-muted);
+    border: 1.5px solid var(--border);
+  }
+
+  /* ── CARD / FORM ── */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    padding: 14px 16px;
+    font-weight: 700;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    user-select: none;
+  }
+
+  .card-header .chevron { transition: transform var(--transition); font-size: 12px; }
+  .card-header.open .chevron { transform: rotate(180deg); }
+  .card-body { padding: 0 16px 16px; }
+
+  .form-group { margin-bottom: 12px; }
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    padding: 13px 14px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'Open Sans', sans-serif;
+    font-size: 16px;
+    transition: border-color var(--transition);
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    min-height: 50px;
+  }
+
+  input:focus, select:focus { border-color: var(--accent); }
+
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238888a0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 38px;
+  }
+
+  /* ── SEGMENT (2-option now) ── */
+  .segment {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+  }
+
+  .seg-btn {
+    padding: 10px 6px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    text-align: center;
+  }
+
+  .seg-btn.active {
+    background: color-mix(in srgb, var(--accent) 25%, var(--surface3));
+    color: var(--accent);
+  }
+
+  /* ── TRANSACTIONS ── */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 16px 0 8px;
+  }
+
+  .section-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  .toggle-history {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+
+  .tx-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .tx-item {
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+
+  .tx-item.confirming { border-color: var(--danger); }
+  .tx-item.editing-mode { border-color: var(--accent); }
+
+  .tx-main { flex: 1; min-width: 0; }
+
+  .tx-row1 {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 2px; flex-wrap: wrap;
+  }
+
+  .tx-type { font-size: 14px; font-weight: 700; text-transform: capitalize; }
+  .tx-type.spend { color: var(--danger); }
+  .tx-type.allowance, .tx-type.bonus { color: var(--accent); }
+
+  .tx-amount {
+    font-family: 'Arvo', serif;
+    font-size: 16px;
+    font-weight: 700;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .tx-amount.spend { color: var(--danger); }
+  .tx-amount.earn { color: var(--accent); }
+
+  .tx-cat-tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    color: var(--accent);
+    text-transform: capitalize;
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+
+  .tx-row2 { display: flex; align-items: center; gap: 6px; }
+  .tx-date { font-size: 12px; color: var(--text-muted); }
+  .tx-note { font-size: 12px; color: var(--text-muted); font-style: italic; }
+
+  .tx-actions { display: flex; gap: 4px; flex-shrink: 0; align-items: center; }
+
+  .icon-btn {
+    width: 36px; height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 15px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .edit-form {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+
+  .edit-form-row { display: flex; gap: 8px; }
+  .edit-form-row .form-group { flex: 1; margin-bottom: 0; }
+  .edit-btns { display: flex; gap: 8px; }
+  .edit-btns .btn { flex: 1; }
+
+  .confirm-delete { display: flex; gap: 8px; margin-top: 8px; }
+  .confirm-delete .btn { flex: 1; }
+
+  /* ── UNDO TOAST ── */
+  .undo-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(120px);
+    background: var(--surface3);
+    border: 1.5px solid var(--border);
+    border-radius: 30px;
+    padding: 12px 20px;
+    display: flex; align-items: center; gap: 12px;
+    z-index: 1000;
+    transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s ease;
+    opacity: 0;
+    white-space: nowrap;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    overflow: hidden;
+  }
+
+  .undo-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .undo-toast-text { font-size: 14px; font-weight: 600; }
+
+  .undo-action {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .undo-bar {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 3px;
+    background: var(--accent);
+    border-radius: 0 0 30px 30px;
+    width: 100%;
+    transform-origin: left;
+  }
+
+  /* ── WARN BANNER ── */
+  .warn-banner {
+    background: color-mix(in srgb, var(--warn) 15%, var(--surface));
+    border: 1.5px solid color-mix(in srgb, var(--warn) 40%, transparent);
+    color: var(--warn);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: none;
+  }
+  .warn-banner.show { display: block; }
+
+  /* ── HISTORY SUMMARY ── */
+  .summary-block {
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    padding: 14px;
+    margin-top: 12px;
+  }
+
+  .summary-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .summary-row {
+    display: flex; justify-content: space-between;
+    padding: 5px 0;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row .amt { font-weight: 700; font-family: 'Arvo', serif; }
+  .summary-row .amt.spend { color: var(--danger); }
+  .summary-row .amt.earn { color: var(--accent); }
+
+  /* ── SLIDE-UP PANELS (Settings + History) ── */
+  .slide-panel {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 200;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(.32,.72,0,1);
+    overflow-y: auto;
+    padding: 0 0 40px;
+  }
+  .slide-panel.open { transform: translateY(0); }
+
+  .panel-header {
+    position: sticky; top: 0;
+    background: var(--bg);
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .panel-title { font-family: 'Arvo', serif; font-size: 20px; }
+
+  .close-btn {
+    width: 44px; height: 44px;
+    background: var(--surface2);
+    border: none; border-radius: 50%;
+    color: var(--text);
+    font-size: 20px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .panel-content { padding: 16px; }
+
+  /* ── SETTINGS ── */
+  .settings-group {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .settings-group-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .settings-row {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 10px;
+  }
+  .settings-row:last-child { margin-bottom: 0; }
+  .settings-row label {
+    flex: 1; margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .settings-row input[type="number"] { width: 90px; text-align: center; flex-shrink: 0; min-height: 44px; }
+
+  .party-btn {
+    background: linear-gradient(135deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff, #c77dff);
+    color: #fff;
+    border: none;
+    font-weight: 700;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+
+  .color-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 10px;
+  }
+  .color-row:last-child { margin-bottom: 0; }
+
+  .color-row-label {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .color-picker-wrap {
+    position: relative;
+    width: 44px; height: 44px;
+    flex-shrink: 0;
+  }
+
+  .color-swatch {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    transition: transform var(--transition);
+  }
+  .color-swatch:active { transform: scale(0.9); }
+
+  .color-picker-wrap input[type="color"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    width: 100%; height: 100%;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+    min-height: unset;
+    border-radius: 50%;
+  }
+
+  .color-save-btn {
+    width: auto;
+    padding: 10px 14px;
+    min-height: 44px;
+    font-size: 14px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* ── HISTORY PANEL ── */
+  .history-filter {
+    display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    padding: 6px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+  }
+  .filter-btn.active {
+    background: color-mix(in srgb, var(--accent) 20%, var(--surface2));
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <div class="logo-wrap">
+        <img src="https://github.com/gizmoexavier/girlsallowanceallowance/blob/main/Bankoftinsleylogo.png?raw=true" alt="Bank of Tinsley">
+      </div>
+      <button class="gear-btn" onclick="openSettings()">⚙️</button>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" id="tab-olivia" onclick="switchGirl('Olivia')">Olivia</button>
+      <button class="tab-btn" id="tab-charlotte" onclick="switchGirl('Charlotte')">Charlotte</button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- BALANCE -->
+    <div class="balance-card">
+      <div class="balance-label">Current Balance</div>
+      <div class="balance-amount" id="balance-display">$0.00</div>
+      <div class="balance-name" id="balance-name">Loading...</div>
+    </div>
+
+    <!-- AUTO NOTE -->
+    <p class="auto-note">🕛 Allowances added automatically every Sunday at midnight</p>
+
+    <!-- WARN -->
+    <div class="warn-banner" id="warn-banner">⚠️ This will put Charlotte below $10.</div>
+
+    <!-- ADD TRANSACTION -->
+    <div class="card">
+      <div class="card-header" id="form-toggle" onclick="toggleForm()">
+        <span>➕ Add Transaction</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="card-body" id="form-body" style="display:none">
+        <div class="form-group">
+          <label>Type</label>
+          <div class="segment" id="type-seg">
+            <button class="seg-btn active" data-val="bonus" onclick="selectType('bonus')">Bonus</button>
+            <button class="seg-btn" data-val="spend" onclick="selectType('spend')">Spend</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Amount ($)</label>
+          <input type="number" id="tx-amount" min="0.01" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group" id="cat-group">
+          <label>Category</label>
+          <select id="tx-cat"></select>
+        </div>
+        <div class="form-group">
+          <label>Note (optional)</label>
+          <input type="text" id="tx-note" placeholder="What was this for?">
+        </div>
+        <button class="btn btn-primary" onclick="submitTransaction()">Add Transaction</button>
+      </div>
+    </div>
+
+    <!-- RECENT TRANSACTIONS -->
+    <div class="section-header">
+      <span class="section-title">Recent Transactions</span>
+      <button class="toggle-history" onclick="openHistory()">Full History</button>
+    </div>
+
+    <div class="tx-list" id="tx-list">
+      <div class="loading">Loading...</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- UNDO TOAST -->
+<div class="undo-toast" id="undo-toast">
+  <span class="undo-toast-text" id="undo-text">Transaction added</span>
+  <button class="undo-action" id="undo-btn" onclick="undoLast()">Undo</button>
+  <div class="undo-bar" id="undo-bar"></div>
+</div>
+
+<!-- HISTORY PANEL -->
+<div class="slide-panel" id="history-panel">
+  <div class="panel-header">
+    <span class="panel-title" id="history-panel-title">History</span>
+    <button class="close-btn" onclick="closeHistory()">✕</button>
+  </div>
+  <div class="panel-content">
+    <div class="history-filter">
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+      <button class="filter-btn" data-filter="allowance" onclick="setFilter('allowance')">Allowance</button>
+      <button class="filter-btn" data-filter="bonus" onclick="setFilter('bonus')">Bonus</button>
+      <button class="filter-btn" data-filter="spend" onclick="setFilter('spend')">Spend</button>
+    </div>
+    <div class="tx-list" id="history-list"></div>
+    <div id="history-summary"></div>
+  </div>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div class="slide-panel" id="settings-panel">
+  <div class="panel-header">
+    <span class="panel-title">Settings</span>
+    <button class="close-btn" onclick="closeSettings()">✕</button>
+  </div>
+  <div class="panel-content">
+
+    <div class="settings-group">
+      <div class="settings-group-title">Weekly Allowance</div>
+      <div class="settings-row">
+        <label style="color:var(--olivia)">Olivia</label>
+        <input type="number" id="s-olivia-amt" min="0" step="0.50">
+        <button class="btn btn-sm btn-ghost" onclick="saveAllowance('Olivia')" style="width:auto;padding:10px 14px;min-height:44px;">Save</button>
+      </div>
+      <div class="settings-row">
+        <label style="color:var(--charlotte)">Charlotte</label>
+        <input type="number" id="s-charlotte-amt" min="0" step="0.50">
+        <button class="btn btn-sm btn-ghost" onclick="saveAllowance('Charlotte')" style="width:auto;padding:10px 14px;min-height:44px;">Save</button>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-group-title">Accent Colors</div>
+      <div class="color-row">
+        <span class="color-row-label" id="color-label-olivia" style="color:var(--olivia)">Olivia</span>
+        <div class="color-picker-wrap">
+          <div class="color-swatch" id="swatch-olivia" style="background:var(--olivia)">🪄</div>
+          <input type="color" id="color-olivia" oninput="previewColor('Olivia', this.value)" value="#FFB7D9">
+        </div>
+        <button class="btn btn-ghost color-save-btn" onclick="saveColor('Olivia')">Save</button>
+      </div>
+      <div class="color-row">
+        <span class="color-row-label" id="color-label-charlotte" style="color:var(--charlotte)">Charlotte</span>
+        <div class="color-picker-wrap">
+          <div class="color-swatch" id="swatch-charlotte" style="background:var(--charlotte)">🪄</div>
+          <input type="color" id="color-charlotte" oninput="previewColor('Charlotte', this.value)" value="#C0FFCB">
+        </div>
+        <button class="btn btn-ghost color-save-btn" onclick="saveColor('Charlotte')">Save</button>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-group-title">Data</div>
+      <button class="btn btn-ghost" onclick="exportCSV()">📤 Export to CSV</button>
+    </div>
+
+    <div class="settings-group">
+      <div class="settings-group-title">Easter Egg</div>
+      <button class="btn party-btn" onclick="toggleParty()">🌈 PARTY TIME</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://wtvyqppmtswdejxenqsb.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0dnlxcHBtdHN3ZGVqeGVucXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0OTExOTEsImV4cCI6MjA5MTA2NzE5MX0.xrddQ-3HegZYG90nrYEETvwisndlI6BJ1B6g6GEAEeo";
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const ACCENT = { Olivia: '#FFB7D9', Charlotte: '#C0FFCB' };
+const SPEND_CATS = ['Robux/Gaming','Art & Crafts','Food & Treats','Clothes & Accessories','Books','School Store','Other'];
+const BONUS_CATS = ['Extra Chores','Yardwork','Gift Card / Cash','Other'];
+
+let activeGirl = 'Olivia';
+let txData = { Olivia: [], Charlotte: [] };
+let cfg = { Olivia: 11, Charlotte: 4 };
+let formOpen = false;
+let selType = 'bonus';
+let lastTxId = null;
+let undoTimer = null;
+let editingId = null;
+let confirmDeleteId = null;
+let historyFilter = 'all';
+let partyMode = false;
+let partyFrame = null;
+
+async function init() {
+  await loadSettings();
+  await loadTransactions();
+  render();
+}
+
+async function loadSettings() {
+  const { data } = await sb.from('settings').select('*');
+  if (data) {
+    data.forEach(r => {
+      cfg[r.girl] = parseFloat(r.weekly_amount);
+      if (r.color) {
+        ACCENT[r.girl] = r.color;
+        const key = r.girl.toLowerCase();
+        document.documentElement.style.setProperty('--' + key, r.color);
+        const swatch = document.getElementById('swatch-' + key);
+        const picker = document.getElementById('color-' + key);
+        const lbl = document.getElementById('color-label-' + key);
+        if (swatch) swatch.style.background = r.color;
+        if (picker) picker.value = r.color;
+        if (lbl) lbl.style.color = r.color;
+      }
+    });
+  }
+  document.getElementById('s-olivia-amt').value = cfg.Olivia;
+  document.getElementById('s-charlotte-amt').value = cfg.Charlotte;
+}
+
+async function loadTransactions() {
+  const { data } = await sb.from('transactions').select('*').order('created_at', { ascending: false });
+  if (data) {
+    txData.Olivia = data.filter(t => t.girl === 'Olivia');
+    txData.Charlotte = data.filter(t => t.girl === 'Charlotte');
+  }
+}
+
+function calcBalance(girl) {
+  return txData[girl].reduce((s, t) => t.type === 'spend' ? s - +t.amount : s + +t.amount, 0);
+}
+
+function fmt(n) {
+  const sign = n < 0 ? '-' : '';
+  return `${sign}$${Math.abs(n).toFixed(2)}`;
+}
+
+function fmtDate(iso) {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function render() {
+  document.documentElement.style.setProperty('--accent', ACCENT[activeGirl]);
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${activeGirl.toLowerCase()}`).classList.add('active');
+  const bal = calcBalance(activeGirl);
+  document.getElementById('balance-display').textContent = fmt(bal);
+  document.getElementById('balance-name').textContent = `${activeGirl}'s savings`;
+  renderRecent();
+}
+
+function renderRecent() {
+  const list = document.getElementById('tx-list');
+  const show = txData[activeGirl].slice(0, 8);
+  if (!show.length) {
+    list.innerHTML = '<div class="empty-state">No transactions yet.</div>';
+    return;
+  }
+  list.innerHTML = show.map(t => buildTxHTML(t, false)).join('');
+}
+
+function buildTxHTML(t, inHistory) {
+  const isSpend = t.type === 'spend';
+  const catTag = t.category ? `<span class="tx-cat-tag">${t.category}</span>` : '';
+  const noteHtml = t.note ? `<span class="tx-note"> · ${t.note}</span>` : '';
+
+  let extra = '';
+  if (inHistory && editingId === t.id) {
+    const catOpts = t.type === 'spend' ? SPEND_CATS : (t.type === 'bonus' ? BONUS_CATS : []);
+    const catHtml = catOpts.length ? `
+      <div class="form-group">
+        <label>Category</label>
+        <select id="e-cat-${t.id}">${catOpts.map(c => `<option${c===t.category?' selected':''}>${c}</option>`).join('')}</select>
+      </div>` : '';
+    extra = `
+      <div class="edit-form">
+        <div class="edit-form-row">
+          <div class="form-group"><label>Amount</label><input type="number" id="e-amt-${t.id}" value="${t.amount}" min="0.01" step="0.01"></div>
+          <div class="form-group"><label>Note</label><input type="text" id="e-note-${t.id}" value="${t.note||''}"></div>
+        </div>
+        ${catHtml}
+        <div class="edit-btns">
+          <button class="btn btn-primary btn-sm" onclick="saveEdit(${t.id})">Save</button>
+          <button class="btn btn-ghost btn-sm" onclick="cancelEdit()">Cancel</button>
+        </div>
+      </div>`;
+  } else if (inHistory && confirmDeleteId === t.id) {
+    extra = `<div class="confirm-delete">
+      <button class="btn btn-danger btn-sm" onclick="doDelete(${t.id})">Delete</button>
+      <button class="btn btn-ghost btn-sm" onclick="cancelDelete()">Cancel</button>
+    </div>`;
+  }
+
+  const isEditing = inHistory && editingId === t.id;
+  const isConfirm = inHistory && confirmDeleteId === t.id;
+  const cls = isEditing ? ' editing-mode' : (isConfirm ? ' confirming' : '');
+
+  const actions = inHistory && !isEditing && !isConfirm ? `
+    <div class="tx-actions">
+      <button class="icon-btn" onclick="startEdit(${t.id})">✏️</button>
+      <button class="icon-btn" onclick="startDelete(${t.id})">🗑️</button>
+    </div>` : '';
+
+  return `
+    <div class="tx-item${cls}" id="tx-${t.id}">
+      <div class="tx-main">
+        <div class="tx-row1">
+          <span class="tx-type ${t.type}">${t.type}</span>
+          ${catTag}
+          <span class="tx-amount ${isSpend?'spend':'earn'}">${isSpend?'-':'+'}${fmt(+t.amount)}</span>
+        </div>
+        <div class="tx-row2">
+          <span class="tx-date">${fmtDate(t.created_at)}</span>
+          ${noteHtml}
+        </div>
+        ${extra}
+      </div>
+      ${actions}
+    </div>`;
+}
+
+function renderHistoryPanel() {
+  const allTxs = txData[activeGirl];
+  const filtered = historyFilter === 'all' ? allTxs : allTxs.filter(t => t.type === historyFilter);
+
+  document.getElementById('history-panel-title').textContent = `${activeGirl}'s History`;
+
+  const list = document.getElementById('history-list');
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty-state">No transactions found.</div>';
+  } else {
+    list.innerHTML = filtered.map(t => buildTxHTML(t, true)).join('');
+  }
+
+  // Summary (always uses all txs regardless of filter)
+  const spendT = {}, earnT = {};
+  allTxs.forEach(t => {
+    const a = +t.amount;
+    if (t.type === 'spend') {
+      const k = t.category || 'Other'; spendT[k] = (spendT[k]||0) + a;
+    } else {
+      const k = t.category || t.type; earnT[k] = (earnT[k]||0) + a;
+    }
+  });
+
+  const spendRows = Object.entries(spendT).sort((a,b)=>b[1]-a[1])
+    .map(([k,v]) => `<div class="summary-row"><span>${k}</span><span class="amt spend">-${fmt(v)}</span></div>`).join('');
+  const earnRows = Object.entries(earnT).sort((a,b)=>b[1]-a[1])
+    .map(([k,v]) => `<div class="summary-row"><span>${k}</span><span class="amt earn">+${fmt(v)}</span></div>`).join('');
+
+  document.getElementById('history-summary').innerHTML = `
+    ${spendRows ? `<div class="summary-block"><div class="summary-title">Spent by Category</div>${spendRows}</div>` : ''}
+    ${earnRows ? `<div class="summary-block"><div class="summary-title">Earned by Type</div>${earnRows}</div>` : ''}`;
+}
+
+// Girl switching
+function switchGirl(girl) {
+  activeGirl = girl;
+  editingId = null;
+  confirmDeleteId = null;
+  historyFilter = 'all';
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+  render();
+}
+
+// Form
+function toggleForm() {
+  formOpen = !formOpen;
+  document.getElementById('form-body').style.display = formOpen ? 'block' : 'none';
+  document.getElementById('form-toggle').classList.toggle('open', formOpen);
+}
+
+function selectType(type) {
+  selType = type;
+  document.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.val === type));
+  const catSel = document.getElementById('tx-cat');
+  document.getElementById('tx-amount').value = '';
+
+  if (type === 'spend') {
+    catSel.innerHTML = SPEND_CATS.map(c=>`<option>${c}</option>`).join('');
+  } else {
+    catSel.innerHTML = BONUS_CATS.map(c=>`<option>${c}</option>`).join('');
+  }
+  document.getElementById('warn-banner').classList.remove('show');
+}
+
+// Init form with bonus selected
+selectType('bonus');
+
+document.getElementById('tx-amount').addEventListener('input', function() {
+  if (activeGirl === 'Charlotte' && selType === 'spend') {
+    const bal = calcBalance('Charlotte');
+    document.getElementById('warn-banner').classList.toggle('show', bal - parseFloat(this.value||0) < 10);
+  }
+});
+
+async function submitTransaction() {
+  const amt = parseFloat(document.getElementById('tx-amount').value);
+  if (!amt || amt <= 0) { alert('Enter a valid amount.'); return; }
+  const note = document.getElementById('tx-note').value.trim();
+  const category = document.getElementById('tx-cat').value;
+
+  const { data, error } = await sb.from('transactions').insert({
+    girl: activeGirl, type: selType, amount: amt, note: note||null, category
+  }).select().single();
+
+  if (error) { alert('Error saving. Check console.'); console.error(error); return; }
+
+  txData[activeGirl].unshift(data);
+  lastTxId = data.id;
+  document.getElementById('tx-amount').value = '';
+  document.getElementById('tx-note').value = '';
+  document.getElementById('warn-banner').classList.remove('show');
+  render();
+  showUndo('Transaction added');
+}
+
+// Undo
+function showUndo(msg) {
+  clearTimeout(undoTimer);
+  const toast = document.getElementById('undo-toast');
+  const bar = document.getElementById('undo-bar');
+  document.getElementById('undo-text').textContent = msg;
+  document.getElementById('undo-btn').style.display = 'block';
+  toast.classList.add('show');
+  bar.style.transition = 'none';
+  bar.style.width = '100%';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    bar.style.transition = 'width 10s linear';
+    bar.style.width = '0%';
+  }));
+  undoTimer = setTimeout(() => { toast.classList.remove('show'); lastTxId = null; }, 10000);
+}
+
+function showMsg(msg) {
+  clearTimeout(undoTimer);
+  const toast = document.getElementById('undo-toast');
+  document.getElementById('undo-text').textContent = msg;
+  document.getElementById('undo-btn').style.display = 'none';
+  document.getElementById('undo-bar').style.width = '0';
+  toast.classList.add('show');
+  undoTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+async function undoLast() {
+  if (!lastTxId) return;
+  clearTimeout(undoTimer);
+  document.getElementById('undo-toast').classList.remove('show');
+  const { error } = await sb.from('transactions').delete().eq('id', lastTxId);
+  if (error) { alert('Could not undo.'); return; }
+  txData[activeGirl] = txData[activeGirl].filter(t => t.id !== lastTxId);
+  lastTxId = null;
+  render();
+}
+
+// History panel
+function openHistory() {
+  editingId = null;
+  confirmDeleteId = null;
+  renderHistoryPanel();
+  document.getElementById('history-panel').classList.add('open');
+}
+
+function closeHistory() {
+  document.getElementById('history-panel').classList.remove('open');
+  editingId = null;
+  confirmDeleteId = null;
+}
+
+function setFilter(f) {
+  historyFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+  renderHistoryPanel();
+}
+
+// Edit (history only)
+function startEdit(id) {
+  editingId = id; confirmDeleteId = null; renderHistoryPanel();
+}
+function cancelEdit() {
+  editingId = null; renderHistoryPanel();
+}
+async function saveEdit(id) {
+  const amt = parseFloat(document.getElementById(`e-amt-${id}`).value);
+  const note = document.getElementById(`e-note-${id}`).value.trim();
+  const catEl = document.getElementById(`e-cat-${id}`);
+  const category = catEl ? catEl.value : null;
+  if (!amt || amt <= 0) { alert('Enter a valid amount.'); return; }
+  const { error } = await sb.from('transactions').update({ amount: amt, note: note||null, category }).eq('id', id);
+  if (error) { alert('Error saving.'); return; }
+  const t = txData[activeGirl].find(t => t.id === id);
+  if (t) { t.amount = amt; t.note = note||null; t.category = category; }
+  editingId = null;
+  render();
+  renderHistoryPanel();
+}
+
+// Delete (history only)
+function startDelete(id) {
+  confirmDeleteId = id; editingId = null; renderHistoryPanel();
+}
+function cancelDelete() {
+  confirmDeleteId = null; renderHistoryPanel();
+}
+async function doDelete(id) {
+  const { error } = await sb.from('transactions').delete().eq('id', id);
+  if (error) { alert('Error deleting.'); return; }
+  txData[activeGirl] = txData[activeGirl].filter(t => t.id !== id);
+  if (lastTxId === id) lastTxId = null;
+  confirmDeleteId = null;
+  render();
+  renderHistoryPanel();
+}
+
+// Settings
+function openSettings() {
+  document.getElementById('s-olivia-amt').value = cfg.Olivia;
+  document.getElementById('s-charlotte-amt').value = cfg.Charlotte;
+  document.getElementById('settings-panel').classList.add('open');
+}
+function closeSettings() {
+  document.getElementById('settings-panel').classList.remove('open');
+}
+
+async function saveAllowance(girl) {
+  const key = `s-${girl.toLowerCase()}-amt`;
+  const amt = parseFloat(document.getElementById(key).value);
+  if (isNaN(amt) || amt < 0) { alert('Enter a valid amount.'); return; }
+  const { error } = await sb.from('settings').update({ weekly_amount: amt }).eq('girl', girl);
+  if (error) { alert('Error saving.'); return; }
+  cfg[girl] = amt;
+  showMsg(`${girl}'s allowance updated to $${amt.toFixed(2)}`);
+}
+
+async function exportCSV() {
+  const { data } = await sb.from('transactions').select('*').order('created_at', { ascending: true });
+  if (!data || !data.length) { alert('No data to export.'); return; }
+  const rows = [['date','girl','type','amount','category','note'],
+    ...data.map(t => [
+      new Date(t.created_at).toLocaleDateString('en-US'),
+      t.girl, t.type, t.amount, t.category||'', t.note||''
+    ])
+  ];
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([csv], {type:'text/csv'})),
+    download: 'tinsley-allowances.csv'
+  });
+  a.click();
+}
+
+// Party
+function toggleParty() {
+  partyMode = !partyMode;
+  if (partyMode) {
+    let frame = 0;
+    const props = [
+      ['--bg', 10, 50], ['--surface', 15, 50], ['--surface2', 18, 50], ['--surface3', 22, 50],
+      ['--text', 85, 80], ['--border', 35, 40]
+    ];
+    const offsets = props.map((_, i) => i * 25);
+    partyFrame = setInterval(() => {
+      frame += 3;
+      props.forEach(([prop, l, s], i) => {
+        const h = (frame + offsets[i]) % 360;
+        document.documentElement.style.setProperty(prop, `hsl(${h},${s}%,${l}%)`);
+      });
+      document.documentElement.style.setProperty('--olivia', `hsl(${(frame*2)%360},90%,75%)`);
+      document.documentElement.style.setProperty('--charlotte', `hsl(${(frame*2+120)%360},90%,75%)`);
+      document.documentElement.style.setProperty('--accent', `hsl(${(frame*2+60)%360},90%,75%)`);
+    }, 50);
+  } else {
+    clearInterval(partyFrame);
+    const r = document.documentElement.style;
+    [['--bg','#0f0f13'],['--surface','#1a1a22'],['--surface2','#22222e'],['--surface3','#2a2a38'],
+     ['--text','#f0f0f5'],['--olivia','#FFB7D9'],['--charlotte','#C0FFCB'],['--border','#33334a']
+    ].forEach(([k,v]) => r.setProperty(k,v));
+    r.setProperty('--accent', ACCENT[activeGirl]);
+  }
+}
+
+// Color customization
+function previewColor(girl, color) {
+  const key = girl.toLowerCase();
+  ACCENT[girl] = color;
+  document.documentElement.style.setProperty('--' + key, color);
+  const swatch = document.getElementById('swatch-' + key);
+  const lbl = document.getElementById('color-label-' + key);
+  if (swatch) swatch.style.background = color;
+  if (lbl) lbl.style.color = color;
+  if (activeGirl === girl) {
+    document.documentElement.style.setProperty('--accent', color);
+  }
+}
+
+async function saveColor(girl) {
+  const key = girl.toLowerCase();
+  const color = document.getElementById('color-' + key).value;
+  const { error } = await sb.from('settings').update({ color }).eq('girl', girl);
+  if (error) { alert('Error saving color.'); return; }
+  ACCENT[girl] = color;
+  previewColor(girl, color);
+  showMsg(girl + "'s color saved!");
+}
+
+init();
+</script>
+</body>
+</html>
