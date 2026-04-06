@@ -784,17 +784,19 @@
         <span class="color-row-label" id="color-label-olivia" style="color:var(--olivia)">Olivia</span>
         <div class="color-picker-wrap">
           <div class="color-swatch" id="swatch-olivia" style="background:var(--olivia)">🪄</div>
-          <input type="color" id="color-olivia" oninput="previewColor('Olivia', this.value)" value="#FFB7D9">
+          <input type="color" id="color-olivia" oninput="swatchPreview('Olivia', this.value)" value="#FFB7D9">
         </div>
         <button class="btn btn-ghost color-save-btn" onclick="saveColor('Olivia')">Save</button>
+        <button class="btn btn-ghost color-save-btn" onclick="resetColor('Olivia')">Reset</button>
       </div>
       <div class="color-row">
         <span class="color-row-label" id="color-label-charlotte" style="color:var(--charlotte)">Charlotte</span>
         <div class="color-picker-wrap">
           <div class="color-swatch" id="swatch-charlotte" style="background:var(--charlotte)">🪄</div>
-          <input type="color" id="color-charlotte" oninput="previewColor('Charlotte', this.value)" value="#C0FFCB">
+          <input type="color" id="color-charlotte" oninput="swatchPreview('Charlotte', this.value)" value="#C0FFCB">
         </div>
         <button class="btn btn-ghost color-save-btn" onclick="saveColor('Charlotte')">Save</button>
+        <button class="btn btn-ghost color-save-btn" onclick="resetColor('Charlotte')">Reset</button>
       </div>
     </div>
 
@@ -846,17 +848,7 @@ async function loadSettings() {
   if (data) {
     data.forEach(r => {
       cfg[r.girl] = parseFloat(r.weekly_amount);
-      if (r.color) {
-        ACCENT[r.girl] = r.color;
-        const key = r.girl.toLowerCase();
-        document.documentElement.style.setProperty('--' + key, r.color);
-        const swatch = document.getElementById('swatch-' + key);
-        const picker = document.getElementById('color-' + key);
-        const lbl = document.getElementById('color-label-' + key);
-        if (swatch) swatch.style.background = r.color;
-        if (picker) picker.value = r.color;
-        if (lbl) lbl.style.color = r.color;
-      }
+      if (r.color) applyColor(r.girl, r.color);
     });
   }
   document.getElementById('s-olivia-amt').value = cfg.Olivia;
@@ -1225,14 +1217,25 @@ function toggleParty() {
 }
 
 // Color customization
-function previewColor(girl, color) {
+const COLOR_DEFAULTS = { Olivia: '#FFB7D9', Charlotte: '#C0FFCB' };
+
+function swatchPreview(girl, color) {
+  // Only updates the swatch — does NOT apply to the rest of the UI
+  const key = girl.toLowerCase();
+  const swatch = document.getElementById('swatch-' + key);
+  if (swatch) swatch.style.background = color;
+}
+
+function applyColor(girl, color) {
   const key = girl.toLowerCase();
   ACCENT[girl] = color;
   document.documentElement.style.setProperty('--' + key, color);
-  const swatch = document.getElementById('swatch-' + key);
   const lbl = document.getElementById('color-label-' + key);
-  if (swatch) swatch.style.background = color;
   if (lbl) lbl.style.color = color;
+  const swatch = document.getElementById('swatch-' + key);
+  if (swatch) swatch.style.background = color;
+  const picker = document.getElementById('color-' + key);
+  if (picker) picker.value = color;
   if (activeGirl === girl) {
     document.documentElement.style.setProperty('--accent', color);
   }
@@ -1243,9 +1246,16 @@ async function saveColor(girl) {
   const color = document.getElementById('color-' + key).value;
   const { error } = await sb.from('settings').update({ color }).eq('girl', girl);
   if (error) { alert('Error saving color.'); return; }
-  ACCENT[girl] = color;
-  previewColor(girl, color);
+  applyColor(girl, color);
   showMsg(girl + "'s color saved!");
+}
+
+async function resetColor(girl) {
+  const color = COLOR_DEFAULTS[girl];
+  const { error } = await sb.from('settings').update({ color: null }).eq('girl', girl);
+  if (error) { alert('Error resetting color.'); return; }
+  applyColor(girl, color);
+  showMsg(girl + "'s color reset to default!");
 }
 
 init();
