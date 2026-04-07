@@ -2,372 +2,254 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bank of Tinsley — Charlotte</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<link rel="manifest" href="https://gizmoexavier.github.io/girlsallowanceallowance/manifest.json">
+<link rel="manifest" href="https://gizmoexavier.github.io/girlsallowanceallowance/manifest-charlotte.json">
 <link rel="apple-touch-icon" href="https://gizmoexavier.github.io/girlsallowanceallowance/BankofTinsleyAppIcon.png">
 <style>
   :root {
     --accent: #C0FFCB;
-    --bg: #0f0f13;
-    --surface: #1a1a22;
-    --surface2: #22222e;
-    --surface3: #2a2a38;
-    --text: #f0f0f5;
-    --text-muted: #8888a0;
-    --border: #33334a;
-    --danger: #ff6b6b;
-    --radius: 16px;
-    --radius-sm: 10px;
-    --transition: 0.2s ease;
+    --bg: #0f0f13; --surface: #1a1a22; --surface2: #22222e; --surface3: #2a2a38;
+    --text: #f0f0f5; --text-muted: #8888a0; --border: #33334a;
+    --danger: #ff6b6b; --radius: 16px; --radius-sm: 10px; --transition: 0.2s ease;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
   body {
     font-family: 'Open Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    font-size: 17px;
-    line-height: 1.5;
-    overscroll-behavior: none;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; font-size: 17px; line-height: 1.5; overscroll-behavior: none;
   }
 
-  /* ── PARTY OVERLAYS ── */
+  /* ── PARTY ── */
   .confetti-overlay {
-    position: fixed; inset: 0;
-    pointer-events: none; z-index: 500;
-    display: none;
+    position: fixed; inset: 0; pointer-events: none; z-index: 500; display: none;
     background: url('https://github.com/gizmoexavier/girlsallowanceallowance/blob/main/confettgif512x512.gif?raw=true') center/cover;
     opacity: 0.75;
   }
   .confetti-overlay.show { display: block; }
 
   .disco-ball {
-    position: fixed;
-    top: -180px; left: 50%;
-    transform: translateX(-50%);
-    width: 140px; z-index: 510;
-    pointer-events: none;
-    display: none;
-    transform-origin: top center;
+    position: fixed; top: -180px; left: 50%; transform: translateX(-50%);
+    width: 140px; z-index: 510; pointer-events: none; display: none; transform-origin: top center;
   }
-  .disco-ball.drop {
-    display: block;
-    animation: ballDrop 1s cubic-bezier(.34,1.56,.64,1) forwards;
-  }
-  .disco-ball.sway {
-    animation: ballSway 3s ease-in-out infinite;
-  }
-  @keyframes ballDrop {
-    from { top: -180px; }
-    to { top: -10px; }
-  }
+  .disco-ball.drop { display: block; animation: ballDrop 1s cubic-bezier(.34,1.56,.64,1) forwards; }
+  .disco-ball.sway { animation: ballSway 3s ease-in-out infinite; }
+  @keyframes ballDrop { from { top: -180px; } to { top: -10px; } }
   @keyframes ballSway {
     0%, 100% { transform: translateX(-50%) rotate(-8deg); }
     50% { transform: translateX(-50%) rotate(8deg); }
   }
 
   .party-cats {
-    position: fixed; bottom: -160px;
-    left: 0; right: 0;
-    display: none;
-    justify-content: space-between;
-    align-items: flex-end;
-    padding: 0 40px;
-    z-index: 510; pointer-events: none;
+    position: fixed; bottom: -160px; left: 0; right: 0;
+    display: none; justify-content: space-between; align-items: flex-end;
+    padding: 0 40px; z-index: 510; pointer-events: none;
   }
-  .party-cats.show {
-    display: flex;
-    animation: catsUp 1s cubic-bezier(.34,1.56,.64,1) forwards;
-  }
-  @keyframes catsUp {
-    from { bottom: -160px; }
-    to { bottom: 0px; }
-  }
+  .party-cats.show { display: flex; animation: catsUp 1s cubic-bezier(.34,1.56,.64,1) forwards; }
+  @keyframes catsUp { from { bottom: -160px; } to { bottom: 0px; } }
   .party-cats img { width: 150px; height: auto; }
   .party-cats img:last-child { transform: scaleX(-1); }
 
   /* ── LAYOUT ── */
-  .app { max-width: 1100px; margin: 0 auto; padding: 0 0 60px; }
+  .app { max-width: 1100px; margin: 0 auto; padding: 0 0 40px; }
 
   .header {
-    position: sticky; top: 0; z-index: 100;
-    background: var(--bg);
-    padding: 14px 28px;
-    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100; background: var(--bg);
+    padding: 14px 28px; border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
   }
-
   .logo-wrap img { height: 52px; width: auto; display: block; }
-
   .header-right { display: flex; align-items: center; gap: 14px; }
-
   .girl-badge {
-    font-family: 'Arvo', serif; font-size: 22px;
-    color: var(--accent);
+    font-family: 'Arvo', serif; font-size: 22px; color: var(--accent);
     padding: 6px 18px; border-radius: 30px;
     background: color-mix(in srgb, var(--accent) 12%, transparent);
     border: 1.5px solid color-mix(in srgb, var(--accent) 30%, transparent);
   }
-
   .gear-btn {
-    width: 50px; height: 50px;
-    background: var(--surface2); border: none; border-radius: 50%;
-    color: var(--text-muted); font-size: 22px; cursor: pointer;
+    width: 50px; height: 50px; background: var(--surface2); border: none;
+    border-radius: 50%; color: var(--text-muted); font-size: 22px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
 
+  /* ── 2x2 GRID ── */
   .main-grid {
     display: grid;
     grid-template-columns: 360px 1fr;
-    gap: 28px; padding: 28px;
-    align-items: start;
+    grid-template-rows: auto 1fr;
+    gap: 24px; padding: 24px;
+    height: calc(100vh - 84px);
   }
 
-  @media (max-width: 700px) {
-    .main-grid { grid-template-columns: 1fr; padding: 16px; }
-    .left-col { position: static; }
+  .top-left { grid-column: 1; grid-row: 1; display: flex; flex-direction: column; gap: 16px; }
+  .top-right { grid-column: 2; grid-row: 1; }
+  .bottom-left { grid-column: 1; grid-row: 2; display: flex; flex-direction: column; gap: 16px; }
+  .bottom-right {
+    grid-column: 2; grid-row: 2;
+    display: flex; flex-direction: column;
+    overflow: hidden;
   }
 
-  .left-col {
-    display: flex; flex-direction: column; gap: 18px;
-    position: sticky; top: 84px;
+  /* iPhone adjustments */
+  @media (max-width: 768px) {
+    .main-grid {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto auto;
+      height: auto;
+      padding: 16px; gap: 16px;
+    }
+    .top-left, .top-right, .bottom-left, .bottom-right {
+      grid-column: 1; grid-row: auto;
+    }
+    .bottom-right { max-height: 400px; }
+    .gear-btn { width: 56px; height: 56px; font-size: 24px; }
+    .chart-wrap { height: 200px !important; }
+    .btn { min-height: 56px; font-size: 16px; }
   }
 
   /* ── BALANCE CARD ── */
   .balance-card {
-    background: var(--surface);
-    border-radius: var(--radius);
-    padding: 28px 24px;
-    border: 1px solid var(--border);
+    background: var(--surface); border-radius: var(--radius);
+    padding: 24px 22px; border: 1px solid var(--border);
     position: relative; overflow: hidden;
   }
   .balance-card::before {
-    content: ''; position: absolute;
-    top: -50px; right: -50px;
-    width: 170px; height: 170px; border-radius: 50%;
-    background: color-mix(in srgb, var(--accent) 15%, transparent);
-    pointer-events: none;
+    content: ''; position: absolute; top: -50px; right: -50px;
+    width: 160px; height: 160px; border-radius: 50%;
+    background: color-mix(in srgb, var(--accent) 15%, transparent); pointer-events: none;
   }
-  .balance-card::after {
-    content: ''; position: absolute;
-    bottom: -30px; left: -30px;
-    width: 100px; height: 100px; border-radius: 50%;
-    background: color-mix(in srgb, var(--accent) 8%, transparent);
-    pointer-events: none;
-  }
-
-  .balance-girl {
-    font-family: 'Arvo', serif; font-size: 32px;
-    color: var(--accent); margin-bottom: 4px;
-  }
-
-  .balance-label {
-    font-size: 12px; text-transform: uppercase;
-    letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 6px;
-  }
-
-  .balance-amount {
-    font-family: 'Arvo', serif; font-size: 60px;
-    line-height: 1; color: var(--accent); margin-bottom: 8px;
-  }
-
-  .auto-note {
-    font-size: 12px; color: var(--text-muted); letter-spacing: 0.2px;
-  }
+  .balance-girl { font-family: 'Arvo', serif; font-size: 28px; color: var(--accent); margin-bottom: 2px; }
+  .balance-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 4px; }
+  .balance-amount { font-family: 'Arvo', serif; font-size: 54px; line-height: 1; color: var(--accent); margin-bottom: 6px; }
+  .auto-note { font-size: 12px; color: var(--text-muted); }
 
   /* ── STATS BAR ── */
-  .stats-bar {
-    background: var(--surface);
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    padding: 18px 20px;
-  }
-
-  .stats-month {
-    font-size: 12px; text-transform: uppercase;
-    letter-spacing: 1.2px; color: var(--text-muted);
-    font-weight: 700; margin-bottom: 14px;
-  }
-
-  .stats-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-  }
-
-  .stat-item {
-    background: var(--surface2); border-radius: var(--radius-sm);
-    padding: 12px 8px; text-align: center;
-    border: 1px solid var(--border);
-  }
-
-  .stat-label {
-    font-size: 11px; text-transform: uppercase;
-    letter-spacing: 0.8px; color: var(--text-muted);
-    font-weight: 700; margin-bottom: 6px;
-  }
-
-  .stat-value {
-    font-family: 'Arvo', serif; font-size: 19px; font-weight: 700;
-  }
-
+  .stats-bar { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px 18px; }
+  .stats-month { font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); font-weight: 700; margin-bottom: 12px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat-item { background: var(--surface2); border-radius: var(--radius-sm); padding: 10px 8px; text-align: center; border: 1px solid var(--border); }
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted); font-weight: 700; margin-bottom: 4px; }
+  .stat-value { font-family: 'Arvo', serif; font-size: 18px; font-weight: 700; }
   .stat-value.earn { color: var(--accent); }
   .stat-value.spend { color: var(--danger); }
   .stat-value.bonus { color: var(--accent); opacity: 0.75; }
 
-  /* ── RIGHT COL ── */
-  .right-col { display: flex; flex-direction: column; gap: 16px; }
+  /* ── CHART ── */
+  .chart-card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px 18px; }
+  .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .chart-title { font-size: 12px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); font-weight: 700; }
+  .chart-tabs { display: flex; gap: 4px; }
+  .chart-tab {
+    padding: 4px 10px; border: 1.5px solid var(--border); border-radius: 20px;
+    background: var(--surface2); color: var(--text-muted); font-size: 12px;
+    font-weight: 600; cursor: pointer; transition: all var(--transition);
+  }
+  .chart-tab.active {
+    background: color-mix(in srgb, var(--accent) 20%, var(--surface2));
+    color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+  .chart-wrap { position: relative; height: 160px; }
 
-  .section-header {
+  /* ── TX LIST (scrollable container) ── */
+  .tx-panel-header {
     display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; flex-shrink: 0;
   }
+  .section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 700; }
+  .toggle-history { font-size: 14px; font-weight: 600; color: var(--accent); background: none; border: none; cursor: pointer; padding: 4px 8px; }
 
-  .section-title {
-    font-size: 13px; text-transform: uppercase;
-    letter-spacing: 1px; color: var(--text-muted); font-weight: 700;
-  }
-
-  .toggle-history {
-    font-size: 14px; font-weight: 600; color: var(--accent);
-    background: none; border: none; cursor: pointer; padding: 4px 8px;
-  }
-
-  .history-filter {
-    display: flex; gap: 8px; flex-wrap: wrap;
-  }
-
+  .history-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; flex-shrink: 0; }
   .filter-btn {
-    padding: 7px 16px; border: 1.5px solid var(--border);
-    border-radius: 20px; background: var(--surface2);
-    color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer;
-    transition: all var(--transition);
+    padding: 6px 14px; border: 1.5px solid var(--border); border-radius: 20px;
+    background: var(--surface2); color: var(--text-muted); font-size: 13px;
+    font-weight: 600; cursor: pointer; transition: all var(--transition);
   }
   .filter-btn.active {
     background: color-mix(in srgb, var(--accent) 20%, var(--surface2));
-    color: var(--accent);
-    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+    color: var(--accent); border-color: color-mix(in srgb, var(--accent) 50%, transparent);
   }
 
-  .tx-list { display: flex; flex-direction: column; gap: 10px; }
-
-  .tx-item {
-    background: var(--surface); border-radius: var(--radius-sm);
-    padding: 14px 18px; border: 1px solid var(--border);
+  .tx-scroll {
+    flex: 1; overflow-y: auto; min-height: 0;
+    display: flex; flex-direction: column; gap: 8px;
+    padding-right: 4px;
   }
+  .tx-scroll::-webkit-scrollbar { width: 4px; }
+  .tx-scroll::-webkit-scrollbar-track { background: transparent; }
+  .tx-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
-  .tx-row1 {
-    display: flex; align-items: center; gap: 8px;
-    margin-bottom: 3px; flex-wrap: wrap;
-  }
-
-  .tx-type { font-size: 15px; font-weight: 700; text-transform: capitalize; }
+  .tx-item { background: var(--surface); border-radius: var(--radius-sm); padding: 12px 16px; border: 1px solid var(--border); flex-shrink: 0; }
+  .tx-row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; flex-wrap: wrap; }
+  .tx-type { font-size: 14px; font-weight: 700; text-transform: capitalize; }
   .tx-type.spend { color: var(--danger); }
   .tx-type.allowance, .tx-type.bonus { color: var(--accent); }
-
-  .tx-amount {
-    font-family: 'Arvo', serif; font-size: 18px; font-weight: 700;
-    margin-left: auto; flex-shrink: 0;
-  }
+  .tx-amount { font-family: 'Arvo', serif; font-size: 17px; font-weight: 700; margin-left: auto; flex-shrink: 0; }
   .tx-amount.spend { color: var(--danger); }
   .tx-amount.earn { color: var(--accent); }
-
   .tx-cat-tag {
-    font-size: 11px; font-weight: 600; padding: 2px 8px;
-    border-radius: 20px;
-    background: color-mix(in srgb, var(--accent) 18%, transparent);
-    color: var(--accent); text-transform: capitalize;
+    font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px;
+    background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent);
     border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   }
-
   .tx-row2 { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
-  .tx-date { font-size: 13px; color: var(--text-muted); }
-  .tx-note { font-size: 13px; color: var(--text-muted); font-style: italic; }
+  .tx-date { font-size: 12px; color: var(--text-muted); }
+  .tx-note { font-size: 12px; color: var(--text-muted); font-style: italic; }
 
-  /* ── SETTINGS PANEL (slides from right) ── */
+  /* ── SETTINGS ── */
   .settings-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 299; display: none;
-    backdrop-filter: blur(2px);
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 299; display: none; backdrop-filter: blur(2px);
   }
   .settings-overlay.show { display: block; }
-
   .settings-panel {
-    position: fixed; top: 0; right: 0; bottom: 0;
-    width: min(360px, 100vw);
-    background: var(--bg); z-index: 300;
-    transform: translateX(100%);
-    transition: transform 0.3s cubic-bezier(.32,.72,0,1);
-    overflow-y: auto;
-    border-left: 1px solid var(--border);
-    box-shadow: -8px 0 32px rgba(0,0,0,0.4);
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(360px, 100vw);
+    background: var(--bg); z-index: 300; transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(.32,.72,0,1); overflow-y: auto;
+    border-left: 1px solid var(--border); box-shadow: -8px 0 32px rgba(0,0,0,0.4);
   }
   .settings-panel.open { transform: translateX(0); }
-
   .panel-header {
-    position: sticky; top: 0; background: var(--bg);
-    padding: 18px; border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: var(--bg); padding: 18px;
+    border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;
   }
   .panel-title { font-family: 'Arvo', serif; font-size: 22px; }
   .close-btn {
-    width: 44px; height: 44px; background: var(--surface2);
-    border: none; border-radius: 50%; color: var(--text);
-    font-size: 20px; cursor: pointer;
+    width: 44px; height: 44px; background: var(--surface2); border: none;
+    border-radius: 50%; color: var(--text); font-size: 20px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
   .panel-content { padding: 18px; }
-
-  .settings-group {
-    background: var(--surface); border-radius: var(--radius);
-    border: 1px solid var(--border); padding: 18px; margin-bottom: 16px;
-  }
-  .settings-group-title {
-    font-size: 12px; text-transform: uppercase;
-    letter-spacing: 1px; color: var(--text-muted);
-    font-weight: 700; margin-bottom: 14px;
-  }
-
+  .settings-group { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 18px; margin-bottom: 16px; }
+  .settings-group-title { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 700; margin-bottom: 14px; }
   .color-row { display: flex; align-items: center; gap: 12px; }
   .color-row-label { flex: 1; font-size: 16px; font-weight: 600; color: var(--accent); }
-
-  .color-picker-wrap {
-    position: relative; width: 48px; height: 48px; flex-shrink: 0;
-  }
+  .color-picker-wrap { position: relative; width: 48px; height: 48px; flex-shrink: 0; }
   .color-swatch {
-    width: 48px; height: 48px; border-radius: 50%;
-    border: 2px solid var(--border); cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px; background: var(--accent);
-    transition: transform var(--transition);
+    width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--border);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; background: var(--accent); transition: transform var(--transition);
   }
   .color-swatch:active { transform: scale(0.9); }
   .color-picker-wrap input[type="color"] {
-    position: absolute; inset: 0; opacity: 0;
-    width: 100%; height: 100%; cursor: pointer;
-    border: none; padding: 0; min-height: unset; border-radius: 50%;
+    position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%;
+    cursor: pointer; border: none; padding: 0; min-height: unset; border-radius: 50%;
   }
-
   .color-btns { display: flex; gap: 8px; margin-top: 12px; }
-
   .btn {
     display: flex; align-items: center; justify-content: center; gap: 8px;
-    width: 100%; padding: 14px; border: none;
-    border-radius: var(--radius); font-family: 'Open Sans', sans-serif;
-    font-size: 15px; font-weight: 600; cursor: pointer;
-    transition: opacity var(--transition), transform var(--transition);
-    min-height: 52px;
+    width: 100%; padding: 14px; border: none; border-radius: var(--radius);
+    font-family: 'Open Sans', sans-serif; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: opacity var(--transition), transform var(--transition); min-height: 52px;
   }
   .btn:active { opacity: 0.8; transform: scale(0.98); }
   .btn-ghost { background: var(--surface2); color: var(--text-muted); border: 1.5px solid var(--border); }
   .btn-accent {
-    background: color-mix(in srgb, var(--accent) 20%, var(--surface2));
-    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 20%, var(--surface2)); color: var(--accent);
     border: 1.5px solid color-mix(in srgb, var(--accent) 40%, transparent);
   }
   .party-btn {
@@ -376,53 +258,23 @@
     text-shadow: 0 1px 3px rgba(0,0,0,0.5); min-height: 60px;
   }
 
-  .empty-state { text-align: center; padding: 40px 16px; color: var(--text-muted); font-size: 15px; }
-  .loading { text-align: center; padding: 32px; color: var(--text-muted); font-size: 15px; }
+  .empty-state { text-align: center; padding: 32px 16px; color: var(--text-muted); font-size: 14px; }
+  .loading { text-align: center; padding: 24px; color: var(--text-muted); font-size: 14px; }
 
   .toast {
-    position: fixed; bottom: 24px; left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: var(--surface3); border: 1.5px solid var(--border);
-    border-radius: 30px; padding: 12px 24px;
-    z-index: 600; transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s;
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--surface3); border: 1.5px solid var(--border); border-radius: 30px;
+    padding: 12px 24px; z-index: 600;
+    transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s;
     opacity: 0; white-space: nowrap; font-size: 14px; font-weight: 600;
     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
   }
   .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-
-  /* ── CHART CARD ── */
-  .chart-card {
-    background: var(--surface);
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    padding: 18px 20px;
-  }
-  .chart-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 14px;
-  }
-  .chart-title {
-    font-size: 12px; text-transform: uppercase;
-    letter-spacing: 1.2px; color: var(--text-muted); font-weight: 700;
-  }
-  .chart-tabs { display: flex; gap: 4px; }
-  .chart-tab {
-    padding: 4px 10px; border: 1.5px solid var(--border);
-    border-radius: 20px; background: var(--surface2);
-    color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer;
-    transition: all var(--transition);
-  }
-  .chart-tab.active {
-    background: color-mix(in srgb, var(--accent) 20%, var(--surface2));
-    color: var(--accent);
-    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  }
-  .chart-wrap { position: relative; height: 160px; }
 </style>
 </head>
 <body>
 
-<!-- PARTY OVERLAYS — all hidden on load -->
+<!-- PARTY — all hidden on load -->
 <div class="confetti-overlay" id="confetti"></div>
 <div class="disco-ball" id="disco-ball" style="display:none">
   <img src="https://github.com/gizmoexavier/girlsallowanceallowance/blob/main/discoballgif.gif?raw=true" alt="disco ball" style="width:140px;height:auto;">
@@ -444,15 +296,15 @@
   </div>
 
   <div class="main-grid">
-    <!-- LEFT -->
-    <div class="left-col">
+
+    <!-- TOP LEFT: Balance + Stats -->
+    <div class="top-left">
       <div class="balance-card">
         <div class="balance-girl">Charlotte</div>
         <div class="balance-label">Current Balance</div>
         <div class="balance-amount" id="balance-display">$0.00</div>
         <div class="auto-note">🕛 Allowances added every Sunday at midnight</div>
       </div>
-
       <div class="stats-bar">
         <div class="stats-month" id="stats-month">This Month</div>
         <div class="stats-grid">
@@ -472,25 +324,30 @@
       </div>
     </div>
 
-
-    <div class="chart-card">
-      <div class="chart-header">
-        <span class="chart-title">Balance Over Time</span>
-        <div class="chart-tabs">
-          <button class="chart-tab active" data-range="week" onclick="setChartRange('week')">Week</button>
-          <button class="chart-tab" data-range="month" onclick="setChartRange('month')">Month</button>
-          <button class="chart-tab" data-range="year" onclick="setChartRange('year')">Year</button>
-          <button class="chart-tab" data-range="all" onclick="setChartRange('all')">All</button>
+    <!-- TOP RIGHT: Chart -->
+    <div class="top-right">
+      <div class="chart-card">
+        <div class="chart-header">
+          <span class="chart-title">Balance Over Time</span>
+          <div class="chart-tabs">
+            <button class="chart-tab active" data-range="week" onclick="setChartRange('week')">Week</button>
+            <button class="chart-tab" data-range="month" onclick="setChartRange('month')">Month</button>
+            <button class="chart-tab" data-range="year" onclick="setChartRange('year')">Year</button>
+            <button class="chart-tab" data-range="all" onclick="setChartRange('all')">All</button>
+          </div>
         </div>
-      </div>
-      <div class="chart-wrap">
-        <canvas id="balance-chart"></canvas>
+        <div class="chart-wrap">
+          <canvas id="balance-chart"></canvas>
+        </div>
       </div>
     </div>
 
-    <!-- RIGHT -->
-    <div class="right-col">
-      <div class="section-header">
+    <!-- BOTTOM LEFT: empty / future use -->
+    <div class="bottom-left"></div>
+
+    <!-- BOTTOM RIGHT: Transactions (own scroll) -->
+    <div class="bottom-right">
+      <div class="tx-panel-header">
         <span class="section-title" id="list-label">Recent Transactions</span>
         <button class="toggle-history" id="history-btn" onclick="toggleHistory()">Full History</button>
       </div>
@@ -500,8 +357,11 @@
         <button class="filter-btn" data-filter="bonus" onclick="setFilter('bonus')">Bonus</button>
         <button class="filter-btn" data-filter="spend" onclick="setFilter('spend')">Spend</button>
       </div>
-      <div class="tx-list" id="tx-list"><div class="loading">Loading...</div></div>
+      <div class="tx-scroll" id="tx-list">
+        <div class="loading">Loading...</div>
+      </div>
     </div>
+
   </div>
 </div>
 
@@ -548,6 +408,12 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const GIRL = 'Charlotte';
 const DEFAULT_COLOR = '#C0FFCB';
+const CAT_EMOJI = {
+  'Robux/Gaming':'🎮','Art & Crafts':'🎨','Food & Treats':'🍕',
+  'Clothes & Accessories':'👗','Books':'📚','School Store':'🏫',
+  'Extra Chores':'🧹','Yardwork':'🌿','Gift Card / Cash':'💵','Other':'⭐'
+};
+const TYPE_EMOJI = { allowance:'💰', bonus:'🌟', spend:'🛍️' };
 
 let txData = [];
 let accentColor = '#C0FFCB';
@@ -556,11 +422,19 @@ let historyFilter = 'all';
 let partyMode = false;
 let partyFrame = null;
 let toastTimer = null;
+let chartInstance = null;
+let chartRange = 'month';
 
+// ── INIT ──
 async function init() {
-  await loadSettings();
-  await loadTransactions();
-  render();
+  try {
+    await loadSettings();
+    await loadTransactions();
+    render();
+  } catch (err) {
+    console.error(err);
+    showToast('Something went wrong loading data');
+  }
 }
 
 async function loadSettings() {
@@ -578,10 +452,6 @@ async function loadTransactions() {
   if (data) txData = data;
 }
 
-function calcBalance() {
-  return txData.reduce((s, t) => t.type === 'spend' ? s - +t.amount : s + +t.amount, 0);
-}
-
 function fmt(n) {
   const sign = n < 0 ? '-' : '';
   return `${sign}$${Math.abs(n).toFixed(2)}`;
@@ -591,10 +461,30 @@ function fmtDate(iso) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+// ── RENDER ──
 function render() {
-  document.getElementById('balance-display').textContent = fmt(calcBalance());
+  const now = new Date();
+  const month = now.getMonth(), year = now.getFullYear();
+  let balance = 0, earned = 0, spent = 0, bonus = 0;
+
+  txData.forEach(t => {
+    const a = +t.amount;
+    balance += t.type === 'spend' ? -a : a;
+    const d = new Date(t.created_at);
+    if (d.getMonth() === month && d.getFullYear() === year) {
+      if (t.type === 'spend') spent += a;
+      else if (t.type === 'bonus') bonus += a;
+      else earned += a;
+    }
+  });
+
+  document.getElementById('balance-display').textContent = fmt(balance);
+  document.getElementById('stats-month').textContent = now.toLocaleString('en-US', { month: 'long' });
+  document.getElementById('stat-earned').textContent = fmt(earned);
+  document.getElementById('stat-spent').textContent = fmt(spent);
+  document.getElementById('stat-bonus').textContent = fmt(bonus);
+
   renderTransactions();
-  renderStats();
   renderChart();
 }
 
@@ -608,18 +498,17 @@ function renderTransactions() {
   document.getElementById('history-btn').textContent = showHistory ? 'Show Recent' : 'Full History';
   document.getElementById('filter-bar').style.display = showHistory ? 'flex' : 'none';
 
-  if (!txs.length) {
-    list.innerHTML = '<div class="empty-state">No transactions yet.</div>';
-    return;
-  }
+  if (!txs.length) { list.innerHTML = '<div class="empty-state">No transactions yet.</div>'; return; }
 
   list.innerHTML = txs.map(t => {
     const isSpend = t.type === 'spend';
-    const catTag = t.category ? `<span class="tx-cat-tag">${t.category}</span>` : '';
+    const typeEmoji = TYPE_EMOJI[t.type] || '';
+    const catEmoji = t.category ? (CAT_EMOJI[t.category] || '') : '';
+    const catTag = t.category ? `<span class="tx-cat-tag">${catEmoji} ${t.category}</span>` : '';
     const noteHtml = t.note ? `<span class="tx-note"> · ${t.note}</span>` : '';
     return `<div class="tx-item">
       <div class="tx-row1">
-        <span class="tx-type ${t.type}">${t.type}</span>
+        <span class="tx-type ${t.type}">${typeEmoji} ${t.type}</span>
         ${catTag}
         <span class="tx-amount ${isSpend ? 'spend' : 'earn'}">${isSpend ? '-' : '+'}${fmt(+t.amount)}</span>
       </div>
@@ -629,30 +518,6 @@ function renderTransactions() {
       </div>
     </div>`;
   }).join('');
-}
-
-function renderStats() {
-  const now = new Date();
-  const month = now.getMonth(), year = now.getFullYear();
-  const monthName = now.toLocaleString('en-US', { month: 'long' });
-  document.getElementById('stats-month').textContent = monthName;
-
-  const thisMo = txData.filter(t => {
-    const d = new Date(t.created_at);
-    return d.getMonth() === month && d.getFullYear() === year;
-  });
-
-  let earned = 0, spent = 0, bonus = 0;
-  thisMo.forEach(t => {
-    const a = +t.amount;
-    if (t.type === 'spend') spent += a;
-    else if (t.type === 'bonus') bonus += a;
-    else earned += a;
-  });
-
-  document.getElementById('stat-earned').textContent = fmt(earned);
-  document.getElementById('stat-spent').textContent = fmt(spent);
-  document.getElementById('stat-bonus').textContent = fmt(bonus);
 }
 
 function toggleHistory() {
@@ -670,6 +535,7 @@ function setFilter(f) {
   renderTransactions();
 }
 
+// ── SETTINGS ──
 function openSettings() {
   document.getElementById('settings-panel').classList.add('open');
   document.getElementById('settings-overlay').classList.add('show');
@@ -707,6 +573,7 @@ async function resetColor() {
   showToast('Color reset!');
 }
 
+// ── PARTY ──
 function toggleParty() {
   partyMode = !partyMode;
   const confetti = document.getElementById('confetti');
@@ -714,9 +581,7 @@ function toggleParty() {
   const cats = document.getElementById('party-cats');
 
   if (partyMode) {
-    // Confetti
     confetti.classList.add('show');
-    // Disco ball — drop then sway
     disco.style.display = 'block';
     disco.classList.remove('sway');
     disco.classList.add('drop');
@@ -728,41 +593,39 @@ function toggleParty() {
         disco.removeEventListener('animationend', handler);
       }
     });
-    // Party cats slide up
     cats.style.display = 'flex';
     requestAnimationFrame(() => cats.classList.add('show'));
-    // Color cycle
+    if (partyFrame) clearInterval(partyFrame);
     let frame = 0;
     const props = [
-      ['--bg', 10, 50], ['--surface', 15, 50], ['--surface2', 18, 50],
-      ['--surface3', 22, 50], ['--text', 85, 80], ['--border', 35, 40]
+      ['--bg',10,50],['--surface',15,50],['--surface2',18,50],
+      ['--surface3',22,50],['--text',85,80],['--border',35,40]
     ];
-    const offsets = props.map((_, i) => i * 25);
+    const offsets = props.map((_,i) => i * 25);
     partyFrame = setInterval(() => {
       frame += 3;
-      props.forEach(([prop, l, s], i) => {
+      props.forEach(([prop,l,s],i) => {
         const h = (frame + offsets[i]) % 360;
         document.documentElement.style.setProperty(prop, `hsl(${h},${s}%,${l}%)`);
       });
-      document.documentElement.style.setProperty('--accent', `hsl(${(frame * 2) % 360},90%,75%)`);
+      document.documentElement.style.setProperty('--accent', `hsl(${(frame*2)%360},90%,75%)`);
     }, 50);
-
   } else {
     confetti.classList.remove('show');
-    disco.classList.remove('drop', 'sway');
-    disco.style.display = 'none';
-    disco.style.top = '-180px';
+    disco.classList.remove('drop','sway');
+    disco.style.display = 'none'; disco.style.top = '-180px';
     cats.classList.remove('show');
     setTimeout(() => { cats.style.display = 'none'; }, 1000);
     clearInterval(partyFrame);
     const r = document.documentElement.style;
     [['--bg','#0f0f13'],['--surface','#1a1a22'],['--surface2','#22222e'],
      ['--surface3','#2a2a38'],['--text','#f0f0f5'],['--border','#33334a']
-    ].forEach(([k, v]) => r.setProperty(k, v));
+    ].forEach(([k,v]) => r.setProperty(k,v));
     r.setProperty('--accent', accentColor);
   }
 }
 
+// ── CSV ──
 async function exportCSV() {
   const { data } = await sb.from('transactions').select('*')
     .eq('girl', GIRL).order('created_at', { ascending: true });
@@ -773,7 +636,7 @@ async function exportCSV() {
       t.type, t.amount, t.category||'', t.note||''
     ])
   ];
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(new Blob([csv], {type:'text/csv'})),
     download: `tinsley-${GIRL.toLowerCase()}.csv`
@@ -781,6 +644,7 @@ async function exportCSV() {
   showToast('CSV downloaded! 📊');
 }
 
+// ── TOAST ──
 function showToast(msg) {
   clearTimeout(toastTimer);
   const t = document.getElementById('toast');
@@ -789,57 +653,51 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-
 // ── CHART ──
-let chartInstance = null;
-let chartRange = 'month';
-
 function setChartRange(range) {
   chartRange = range;
-  document.querySelectorAll('.chart-tab').forEach(b =>
-    b.classList.toggle('active', b.dataset.range === range)
-  );
+  document.querySelectorAll('.chart-tab').forEach(b => b.classList.toggle('active', b.dataset.range === range));
   renderChart();
 }
 
 function renderChart() {
   const now = new Date();
   let labels = [], balances = [];
-  const sorted = [...txData].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  const sorted = [...txData].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
 
   if (chartRange === 'week') {
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(now); d.setDate(d.getDate() - i); d.setHours(23,59,59,999);
-      labels.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+      const d = new Date(now); d.setDate(d.getDate()-i); d.setHours(23,59,59,999);
+      labels.push(d.toLocaleDateString('en-US', {weekday:'short'}));
       balances.push(sorted.filter(t => new Date(t.created_at) <= d)
-        .reduce((s, t) => t.type === 'spend' ? s - +t.amount : s + +t.amount, 0));
+        .reduce((s,t) => t.type==='spend' ? s - +t.amount : s + +t.amount, 0));
     }
   } else if (chartRange === 'month') {
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    for (let i = 1; i <= daysInMonth; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth(), i, 23, 59, 59, 999);
+    const days = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+    for (let i = 1; i <= days; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), i, 23,59,59,999);
       if (d > now) break;
       labels.push(i.toString());
       balances.push(sorted.filter(t => new Date(t.created_at) <= d)
-        .reduce((s, t) => t.type === 'spend' ? s - +t.amount : s + +t.amount, 0));
+        .reduce((s,t) => t.type==='spend' ? s - +t.amount : s + +t.amount, 0));
     }
   } else if (chartRange === 'year') {
     for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59, 999);
-      labels.push(d.toLocaleDateString('en-US', { month: 'short' }));
+      const d = new Date(now.getFullYear(), now.getMonth()-i+1, 0, 23,59,59,999);
+      labels.push(d.toLocaleDateString('en-US', {month:'short'}));
       balances.push(sorted.filter(t => new Date(t.created_at) <= d)
-        .reduce((s, t) => t.type === 'spend' ? s - +t.amount : s + +t.amount, 0));
+        .reduce((s,t) => t.type==='spend' ? s - +t.amount : s + +t.amount, 0));
     }
   } else {
     if (sorted.length) {
       const first = new Date(sorted[0].created_at);
       const cursor = new Date(first.getFullYear(), first.getMonth(), 1);
       while (cursor <= now) {
-        const end = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0, 23, 59, 59, 999);
-        labels.push(cursor.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
+        const end = new Date(cursor.getFullYear(), cursor.getMonth()+1, 0, 23,59,59,999);
+        labels.push(cursor.toLocaleDateString('en-US', {month:'short',year:'2-digit'}));
         balances.push(sorted.filter(t => new Date(t.created_at) <= end)
-          .reduce((s, t) => t.type === 'spend' ? s - +t.amount : s + +t.amount, 0));
-        cursor.setMonth(cursor.getMonth() + 1);
+          .reduce((s,t) => t.type==='spend' ? s - +t.amount : s + +t.amount, 0));
+        cursor.setMonth(cursor.getMonth()+1);
       }
     }
   }
@@ -859,13 +717,11 @@ function renderChart() {
         pointRadius: labels.length > 20 ? 0 : 3,
         pointHoverRadius: 5,
         pointBackgroundColor: accent,
-        fill: true,
-        tension: 0.4
+        fill: true, tension: 0.4
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
+      responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
         tooltip: {
