@@ -1,1 +1,15 @@
-
+{
+  "name": "Bank of Tinsley — Charlotte",
+  "short_name": "Charlotte's Bank",
+  "start_url": "/girlsallowanceallowance/kids-charlotte.html",
+  "display": "standalone",
+  "background_color": "#0f0f13",
+  "theme_color": "#0f0f13",
+  "icons": [
+    {
+      "src": "BankofTinsleyAppIcon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
