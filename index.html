@@ -592,7 +592,7 @@ function buildTxHTML(t, inHistory) {
         <div class="tx-row1">
           <span class="tx-type ${t.type}">${typeEmoji} ${t.type}</span>
           ${catTag}
-          <span class="tx-amount ${isSpend?'spend':'earn'}">${isSpend?'-':'+'}}${fmt(+t.amount)}</span>
+          <span class="tx-amount ${isSpend?'spend':'earn'}">${isSpend?'-':'+'}${fmt(+t.amount)}</span>
         </div>
         <div class="tx-row2">
           <span class="tx-date">${fmtDate(t.created_at)}</span>
@@ -870,7 +870,7 @@ function renderChart() {
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now); d.setDate(d.getDate()-i); d.setHours(23,59,59,999);
       labels.push(d.toLocaleDateString('en-US', {weekday:'short'}));
-      balances.push(sorted.filter(t => new Date(t.created_at)<=d).reduce((s,t)=>t.type==='spend'?s-+t.amount:s++t.amount,0));
+      balances.push(sorted.filter(t => new Date(t.created_at)<=d).reduce((s,t)=>t.type==='spend'?s-+t.amount:s + +t.amount,0));
     }
   } else if (chartRange === 'month') {
     const days = new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
@@ -878,13 +878,13 @@ function renderChart() {
       const d=new Date(now.getFullYear(),now.getMonth(),i,23,59,59,999);
       if(d>now)break;
       labels.push(i.toString());
-      balances.push(sorted.filter(t=>new Date(t.created_at)<=d).reduce((s,t)=>t.type==='spend'?s-+t.amount:s++t.amount,0));
+      balances.push(sorted.filter(t=>new Date(t.created_at)<=d).reduce((s,t)=>t.type==='spend'?s-+t.amount:s + +t.amount,0));
     }
   } else if (chartRange === 'year') {
     for (let i=11;i>=0;i--) {
       const d=new Date(now.getFullYear(),now.getMonth()-i+1,0,23,59,59,999);
       labels.push(d.toLocaleDateString('en-US',{month:'short'}));
-      balances.push(sorted.filter(t=>new Date(t.created_at)<=d).reduce((s,t)=>t.type==='spend'?s-+t.amount:s++t.amount,0));
+      balances.push(sorted.filter(t=>new Date(t.created_at)<=d).reduce((s,t)=>t.type==='spend'?s-+t.amount:s + +t.amount,0));
     }
   } else {
     if (sorted.length) {
@@ -893,7 +893,7 @@ function renderChart() {
       while(cursor<=now) {
         const end=new Date(cursor.getFullYear(),cursor.getMonth()+1,0,23,59,59,999);
         labels.push(cursor.toLocaleDateString('en-US',{month:'short',year:'2-digit'}));
-        balances.push(sorted.filter(t=>new Date(t.created_at)<=end).reduce((s,t)=>t.type==='spend'?s-+t.amount:s++t.amount,0));
+        balances.push(sorted.filter(t=>new Date(t.created_at)<=end).reduce((s,t)=>t.type==='spend'?s-+t.amount:s + +t.amount,0));
         cursor.setMonth(cursor.getMonth()+1);
       }
     }
