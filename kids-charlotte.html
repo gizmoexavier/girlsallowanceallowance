@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bank of Tinsley — Charlotte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Arvo:wght@700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="manifest" href="https://gizmoexavier.github.io/girlsallowanceallowance/manifest.json">
+<link rel="apple-touch-icon" href="https://gizmoexavier.github.io/girlsallowanceallowance/BankofTinsleyAppIcon.png">
+<style>
+  :root {
+    --accent: #C0FFCB;
+    --bg: #0f0f13;
+    --surface: #1a1a22;
+    --surface2: #22222e;
+    --surface3: #2a2a38;
+    --text: #f0f0f5;
+    --text-muted: #8888a0;
+    --border: #33334a;
+    --danger: #ff6b6b;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --transition: 0.2s ease;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Open Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 17px;
+    line-height: 1.5;
+    overscroll-behavior: none;
+  }
+
+  /* ── PARTY OVERLAYS ── */
+  .confetti-overlay {
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 500;
+    display: none;
+    background: url('https://github.com/gizmoexavier/girlsallowanceallowance/blob/main/confettgif512x512.gif?raw=true') center/cover;
+    opacity: 0.75;
+  }
+  .confetti-overlay.show { display: block; }
+
+  .disco-ball {
+    position: fixed;
+    top: -180px; left: 50%;
+    transform: translateX(-50%);
+    width: 140px; z-index: 510;
+    pointer-events: none;
+    display: none;
+    transform-origin: top center;
+  }
+  .disco-ball.drop {
+    display: block;
+    animation: ballDrop 1s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  .disco-ball.sway {
+    animation: ballSway 3s ease-in-out infinite;
+  }
+  @keyframes ballDrop {
+    from { top: -180px; }
+    to { top: -10px; }
+  }
+  @keyframes ballSway {
+    0%, 100% { transform: translateX(-50%) rotate(-8deg); }
+    50% { transform: translateX(-50%) rotate(8deg); }
+  }
+
+  .party-cats {
+    position: fixed; bottom: -160px;
+    left: 0; right: 0;
+    display: none;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0 40px;
+    z-index: 510; pointer-events: none;
+  }
+  .party-cats.show {
+    display: flex;
+    animation: catsUp 1s cubic-bezier(.34,1.56,.64,1) forwards;
+  }
+  @keyframes catsUp {
+    from { bottom: -160px; }
+    to { bottom: 0px; }
+  }
+  .party-cats img { width: 150px; height: auto; }
+  .party-cats img:last-child { transform: scaleX(-1); }
+
+  /* ── LAYOUT ── */
+  .app { max-width: 1100px; margin: 0 auto; padding: 0 0 60px; }
+
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--bg);
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .logo-wrap img { height: 52px; width: auto; display: block; }
+
+  .header-right { display: flex; align-items: center; gap: 14px; }
+
+  .girl-badge {
+    font-family: 'Arvo', serif; font-size: 22px;
+    color: var(--accent);
+    padding: 6px 18px; border-radius: 30px;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1.5px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+
+  .gear-btn {
+    width: 50px; height: 50px;
+    background: var(--surface2); border: none; border-radius: 50%;
+    color: var(--text-muted); font-size: 22px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 28px; padding: 28px;
+    align-items: start;
+  }
+
+  @media (max-width: 700px) {
+    .main-grid { grid-template-columns: 1fr; padding: 16px; }
+    .left-col { position: static; }
+  }
+
+  .left-col {
+    display: flex; flex-direction: column; gap: 18px;
+    position: sticky; top: 84px;
+  }
+
+  /* ── BALANCE CARD ── */
+  .balance-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    border: 1px solid var(--border);
+    position: relative; overflow: hidden;
+  }
+  .balance-card::before {
+    content: ''; position: absolute;
+    top: -50px; right: -50px;
+    width: 170px; height: 170px; border-radius: 50%;
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    pointer-events: none;
+  }
+  .balance-card::after {
+    content: ''; position: absolute;
+    bottom: -30px; left: -30px;
+    width: 100px; height: 100px; border-radius: 50%;
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    pointer-events: none;
+  }
+
+  .balance-girl {
+    font-family: 'Arvo', serif; font-size: 32px;
+    color: var(--accent); margin-bottom: 4px;
+  }
+
+  .balance-label {
+    font-size: 12px; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 6px;
+  }
+
+  .balance-amount {
+    font-family: 'Arvo', serif; font-size: 60px;
+    line-height: 1; color: var(--accent); margin-bottom: 8px;
+  }
+
+  .auto-note {
+    font-size: 12px; color: var(--text-muted); letter-spacing: 0.2px;
+  }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 18px 20px;
+  }
+
+  .stats-month {
+    font-size: 12px; text-transform: uppercase;
+    letter-spacing: 1.2px; color: var(--text-muted);
+    font-weight: 700; margin-bottom: 14px;
+  }
+
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+  }
+
+  .stat-item {
+    background: var(--surface2); border-radius: var(--radius-sm);
+    padding: 12px 8px; text-align: center;
+    border: 1px solid var(--border);
+  }
+
+  .stat-label {
+    font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--text-muted);
+    font-weight: 700; margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-family: 'Arvo', serif; font-size: 19px; font-weight: 700;
+  }
+
+  .stat-value.earn { color: var(--accent); }
+  .stat-value.spend { color: var(--danger); }
+  .stat-value.bonus { color: var(--accent); opacity: 0.75; }
+
+  /* ── RIGHT COL ── */
+  .right-col { display: flex; flex-direction: column; gap: 16px; }
+
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .section-title {
+    font-size: 13px; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-muted); font-weight: 700;
+  }
+
+  .toggle-history {
+    font-size: 14px; font-weight: 600; color: var(--accent);
+    background: none; border: none; cursor: pointer; padding: 4px 8px;
+  }
+
+  .history-filter {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    padding: 7px 16px; border: 1.5px solid var(--border);
+    border-radius: 20px; background: var(--surface2);
+    color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: all var(--transition);
+  }
+  .filter-btn.active {
+    background: color-mix(in srgb, var(--accent) 20%, var(--surface2));
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+
+  .tx-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .tx-item {
+    background: var(--surface); border-radius: var(--radius-sm);
+    padding: 14px 18px; border: 1px solid var(--border);
+  }
+
+  .tx-row1 {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 3px; flex-wrap: wrap;
+  }
+
+  .tx-type { font-size: 15px; font-weight: 700; text-transform: capitalize; }
+  .tx-type.spend { color: var(--danger); }
+  .tx-type.allowance, .tx-type.bonus { color: var(--accent); }
+
+  .tx-amount {
+    font-family: 'Arvo', serif; font-size: 18px; font-weight: 700;
+    margin-left: auto; flex-shrink: 0;
+  }
+  .tx-amount.spend { color: var(--danger); }
+  .tx-amount.earn { color: var(--accent); }
+
+  .tx-cat-tag {
+    font-size: 11px; font-weight: 600; padding: 2px 8px;
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
+    color: var(--accent); text-transform: capitalize;
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+
+  .tx-row2 { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+  .tx-date { font-size: 13px; color: var(--text-muted); }
+  .tx-note { font-size: 13px; color: var(--text-muted); font-style: italic; }
+
+  /* ── SETTINGS PANEL (slides from right) ── */
+  .settings-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 299; display: none;
+    backdrop-filter: blur(2px);
+  }
+  .settings-overlay.show { display: block; }
+
+  .settings-panel {
+    position: fixed; top: 0; right: 0; bottom: 0;
+    width: min(360px, 100vw);
+    background: var(--bg); z-index: 300;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(.32,.72,0,1);
+    overflow-y: auto;
+    border-left: 1px solid var(--border);
+    box-shadow: -8px 0 32px rgba(0,0,0,0.4);
+  }
+  .settings-panel.open { transform: translateX(0); }
+
+  .panel-header {
+    position: sticky; top: 0; background: var(--bg);
+    padding: 18px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title { font-family: 'Arvo', serif; font-size: 22px; }
+  .close-btn {
+    width: 44px; height: 44px; background: var(--surface2);
+    border: none; border-radius: 50%; color: var(--text);
+    font-size: 20px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .panel-content { padding: 18px; }
+
+  .settings-group {
+    background: var(--surface); border-radius: var(--radius);
+    border: 1px solid var(--border); padding: 18px; margin-bottom: 16px;
+  }
+  .settings-group-title {
+    font-size: 12px; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--text-muted);
+    font-weight: 700; margin-bottom: 14px;
+  }
+
+  .color-row { display: flex; align-items: center; gap: 12px; }
+  .color-row-label { flex: 1; font-size: 16px; font-weight: 600; color: var(--accent); }
+
+  .color-picker-wrap {
+    position: relative; width: 48px; height: 48px; flex-shrink: 0;
+  }
+  .color-swatch {
+    width: 48px; height: 48px; border-radius: 50%;
+    border: 2px solid var(--border); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; background: var(--accent);
+    transition: transform var(--transition);
+  }
+  .color-swatch:active { transform: scale(0.9); }
+  .color-picker-wrap input[type="color"] {
+    position: absolute; inset: 0; opacity: 0;
+    width: 100%; height: 100%; cursor: pointer;
+    border: none; padding: 0; min-height: unset; border-radius: 50%;
+  }
+
+  .color-btns { display: flex; gap: 8px; margin-top: 12px; }
+
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 14px; border: none;
+    border-radius: var(--radius); font-family: 'Open Sans', sans-serif;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    transition: opacity var(--transition), transform var(--transition);
+    min-height: 52px;
+  }
+  .btn:active { opacity: 0.8; transform: scale(0.98); }
+  .btn-ghost { background: var(--surface2); color: var(--text-muted); border: 1.5px solid var(--border); }
+  .btn-accent {
+    background: color-mix(in srgb, var(--accent) 20%, var(--surface2));
+    color: var(--accent);
+    border: 1.5px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  .party-btn {
+    background: linear-gradient(135deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff, #c77dff);
+    color: #fff; border: none; font-weight: 700; font-size: 18px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5); min-height: 60px;
+  }
+
+  .empty-state { text-align: center; padding: 40px 16px; color: var(--text-muted); font-size: 15px; }
+  .loading { text-align: center; padding: 32px; color: var(--text-muted); font-size: 15px; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface3); border: 1.5px solid var(--border);
+    border-radius: 30px; padding: 12px 24px;
+    z-index: 600; transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s;
+    opacity: 0; white-space: nowrap; font-size: 14px; font-weight: 600;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- PARTY OVERLAYS — all hidden on load -->
+<div class="confetti-overlay" id="confetti"></div>
+<div class="disco-ball" id="disco-ball" style="display:none">
+  <img src="https://github.com/gizmoexavier/girlsallowanceallowance/blob/main/discoballgif.gif?raw=true" alt="disco ball" style="width:140px;height:auto;">
+</div>
+<div class="party-cats" id="party-cats" style="display:none">
+  <img src="https://github.com/gizmoexavier/girlsallowanceallowance/blob/main/pngtree-party-cat-cartoon-png-image_6129662.png?raw=true" alt="party cat">
+  <img src="https://github.com/gizmoexavier/girlsallowanceallowance/blob/main/pngtree-party-cat-cartoon-png-image_6129662.png?raw=true" alt="party cat">
+</div>
+
+<div class="app">
+  <div class="header">
+    <div class="logo-wrap">
+      <img src="https://github.com/gizmoexavier/girlsallowanceallowance/blob/main/Bankoftinsleylogo.png?raw=true" alt="Bank of Tinsley">
+    </div>
+    <div class="header-right">
+      <span class="girl-badge">Charlotte</span>
+      <button class="gear-btn" onclick="openSettings()">⚙️</button>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <!-- LEFT -->
+    <div class="left-col">
+      <div class="balance-card">
+        <div class="balance-girl">Charlotte</div>
+        <div class="balance-label">Current Balance</div>
+        <div class="balance-amount" id="balance-display">$0.00</div>
+        <div class="auto-note">🕛 Allowances added every Sunday at midnight</div>
+      </div>
+
+      <div class="stats-bar">
+        <div class="stats-month" id="stats-month">This Month</div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">Earned</div>
+            <div class="stat-value earn" id="stat-earned">$0.00</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Spent</div>
+            <div class="stat-value spend" id="stat-spent">$0.00</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Bonuses</div>
+            <div class="stat-value bonus" id="stat-bonus">$0.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right-col">
+      <div class="section-header">
+        <span class="section-title" id="list-label">Recent Transactions</span>
+        <button class="toggle-history" id="history-btn" onclick="toggleHistory()">Full History</button>
+      </div>
+      <div class="history-filter" id="filter-bar" style="display:none">
+        <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
+        <button class="filter-btn" data-filter="allowance" onclick="setFilter('allowance')">Allowance</button>
+        <button class="filter-btn" data-filter="bonus" onclick="setFilter('bonus')">Bonus</button>
+        <button class="filter-btn" data-filter="spend" onclick="setFilter('spend')">Spend</button>
+      </div>
+      <div class="tx-list" id="tx-list"><div class="loading">Loading...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="settings-overlay" id="settings-overlay" onclick="closeSettings()"></div>
+<div class="settings-panel" id="settings-panel">
+  <div class="panel-header">
+    <span class="panel-title">Settings</span>
+    <button class="close-btn" onclick="closeSettings()">✕</button>
+  </div>
+  <div class="panel-content">
+    <div class="settings-group">
+      <div class="settings-group-title">My Color</div>
+      <div class="color-row">
+        <span class="color-row-label" id="color-label">Charlotte</span>
+        <div class="color-picker-wrap">
+          <div class="color-swatch" id="color-swatch">🪄</div>
+          <input type="color" id="color-picker" value="#C0FFCB" oninput="swatchPreview(this.value)">
+        </div>
+      </div>
+      <div class="color-btns">
+        <button class="btn btn-accent" onclick="saveColor()">Save Color</button>
+        <button class="btn btn-ghost" onclick="resetColor()">Reset</button>
+      </div>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">Party</div>
+      <button class="btn party-btn" onclick="toggleParty()">🌈 PARTY TIME</button>
+    </div>
+    <div class="settings-group">
+      <div class="settings-group-title">Data</div>
+      <button class="btn btn-ghost" onclick="exportCSV()">📤 Export to CSV</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = "https://wtvyqppmtswdejxenqsb.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0dnlxcHBtdHN3ZGVqeGVucXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0OTExOTEsImV4cCI6MjA5MTA2NzE5MX0.xrddQ-3HegZYG90nrYEETvwisndlI6BJ1B6g6GEAEeo";
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const GIRL = 'Charlotte';
+const DEFAULT_COLOR = '#C0FFCB';
+
+let txData = [];
+let accentColor = '#C0FFCB';
+let showHistory = false;
+let historyFilter = 'all';
+let partyMode = false;
+let partyFrame = null;
+let toastTimer = null;
+
+async function init() {
+  await loadSettings();
+  await loadTransactions();
+  render();
+}
+
+async function loadSettings() {
+  const { data } = await sb.from('settings').select('*').eq('girl', GIRL).single();
+  if (data && data.color) {
+    accentColor = data.color;
+    applyColor(data.color);
+    document.getElementById('color-picker').value = data.color;
+  }
+}
+
+async function loadTransactions() {
+  const { data } = await sb.from('transactions').select('*')
+    .eq('girl', GIRL).order('created_at', { ascending: false });
+  if (data) txData = data;
+}
+
+function calcBalance() {
+  return txData.reduce((s, t) => t.type === 'spend' ? s - +t.amount : s + +t.amount, 0);
+}
+
+function fmt(n) {
+  const sign = n < 0 ? '-' : '';
+  return `${sign}$${Math.abs(n).toFixed(2)}`;
+}
+
+function fmtDate(iso) {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function render() {
+  document.getElementById('balance-display').textContent = fmt(calcBalance());
+  renderTransactions();
+  renderStats();
+}
+
+function renderTransactions() {
+  const list = document.getElementById('tx-list');
+  const txs = showHistory
+    ? (historyFilter === 'all' ? txData : txData.filter(t => t.type === historyFilter))
+    : txData.slice(0, 8);
+
+  document.getElementById('list-label').textContent = showHistory ? 'Full History' : 'Recent Transactions';
+  document.getElementById('history-btn').textContent = showHistory ? 'Show Recent' : 'Full History';
+  document.getElementById('filter-bar').style.display = showHistory ? 'flex' : 'none';
+
+  if (!txs.length) {
+    list.innerHTML = '<div class="empty-state">No transactions yet.</div>';
+    return;
+  }
+
+  list.innerHTML = txs.map(t => {
+    const isSpend = t.type === 'spend';
+    const catTag = t.category ? `<span class="tx-cat-tag">${t.category}</span>` : '';
+    const noteHtml = t.note ? `<span class="tx-note"> · ${t.note}</span>` : '';
+    return `<div class="tx-item">
+      <div class="tx-row1">
+        <span class="tx-type ${t.type}">${t.type}</span>
+        ${catTag}
+        <span class="tx-amount ${isSpend ? 'spend' : 'earn'}">${isSpend ? '-' : '+'}${fmt(+t.amount)}</span>
+      </div>
+      <div class="tx-row2">
+        <span class="tx-date">${fmtDate(t.created_at)}</span>
+        ${noteHtml}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderStats() {
+  const now = new Date();
+  const month = now.getMonth(), year = now.getFullYear();
+  const monthName = now.toLocaleString('en-US', { month: 'long' });
+  document.getElementById('stats-month').textContent = monthName;
+
+  const thisMo = txData.filter(t => {
+    const d = new Date(t.created_at);
+    return d.getMonth() === month && d.getFullYear() === year;
+  });
+
+  let earned = 0, spent = 0, bonus = 0;
+  thisMo.forEach(t => {
+    const a = +t.amount;
+    if (t.type === 'spend') spent += a;
+    else if (t.type === 'bonus') bonus += a;
+    else earned += a;
+  });
+
+  document.getElementById('stat-earned').textContent = fmt(earned);
+  document.getElementById('stat-spent').textContent = fmt(spent);
+  document.getElementById('stat-bonus').textContent = fmt(bonus);
+}
+
+function toggleHistory() {
+  showHistory = !showHistory;
+  if (!showHistory) {
+    historyFilter = 'all';
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+  }
+  renderTransactions();
+}
+
+function setFilter(f) {
+  historyFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+  renderTransactions();
+}
+
+function openSettings() {
+  document.getElementById('settings-panel').classList.add('open');
+  document.getElementById('settings-overlay').classList.add('show');
+}
+function closeSettings() {
+  document.getElementById('settings-panel').classList.remove('open');
+  document.getElementById('settings-overlay').classList.remove('show');
+}
+
+function applyColor(color) {
+  accentColor = color;
+  document.documentElement.style.setProperty('--accent', color);
+  document.getElementById('color-swatch').style.background = color;
+  document.getElementById('color-label').style.color = color;
+  document.getElementById('color-picker').value = color;
+}
+
+function swatchPreview(color) {
+  document.getElementById('color-swatch').style.background = color;
+}
+
+async function saveColor() {
+  const color = document.getElementById('color-picker').value;
+  const { error } = await sb.from('settings').update({ color }).eq('girl', GIRL);
+  if (error) { alert('Error saving.'); return; }
+  applyColor(color);
+  showToast('Color saved! 🎨');
+}
+
+async function resetColor() {
+  const { error } = await sb.from('settings').update({ color: null }).eq('girl', GIRL);
+  if (error) { alert('Error resetting.'); return; }
+  applyColor(DEFAULT_COLOR);
+  document.getElementById('color-picker').value = DEFAULT_COLOR;
+  showToast('Color reset!');
+}
+
+function toggleParty() {
+  partyMode = !partyMode;
+  const confetti = document.getElementById('confetti');
+  const disco = document.getElementById('disco-ball');
+  const cats = document.getElementById('party-cats');
+
+  if (partyMode) {
+    // Confetti
+    confetti.classList.add('show');
+    // Disco ball — drop then sway
+    disco.style.display = 'block';
+    disco.classList.remove('sway');
+    disco.classList.add('drop');
+    disco.addEventListener('animationend', function handler(e) {
+      if (e.animationName === 'ballDrop') {
+        disco.classList.remove('drop');
+        disco.style.top = '-10px';
+        disco.classList.add('sway');
+        disco.removeEventListener('animationend', handler);
+      }
+    });
+    // Party cats slide up
+    cats.style.display = 'flex';
+    requestAnimationFrame(() => cats.classList.add('show'));
+    // Color cycle
+    let frame = 0;
+    const props = [
+      ['--bg', 10, 50], ['--surface', 15, 50], ['--surface2', 18, 50],
+      ['--surface3', 22, 50], ['--text', 85, 80], ['--border', 35, 40]
+    ];
+    const offsets = props.map((_, i) => i * 25);
+    partyFrame = setInterval(() => {
+      frame += 3;
+      props.forEach(([prop, l, s], i) => {
+        const h = (frame + offsets[i]) % 360;
+        document.documentElement.style.setProperty(prop, `hsl(${h},${s}%,${l}%)`);
+      });
+      document.documentElement.style.setProperty('--accent', `hsl(${(frame * 2) % 360},90%,75%)`);
+    }, 50);
+
+  } else {
+    confetti.classList.remove('show');
+    disco.classList.remove('drop', 'sway');
+    disco.style.display = 'none';
+    disco.style.top = '-180px';
+    cats.classList.remove('show');
+    setTimeout(() => { cats.style.display = 'none'; }, 1000);
+    clearInterval(partyFrame);
+    const r = document.documentElement.style;
+    [['--bg','#0f0f13'],['--surface','#1a1a22'],['--surface2','#22222e'],
+     ['--surface3','#2a2a38'],['--text','#f0f0f5'],['--border','#33334a']
+    ].forEach(([k, v]) => r.setProperty(k, v));
+    r.setProperty('--accent', accentColor);
+  }
+}
+
+async function exportCSV() {
+  const { data } = await sb.from('transactions').select('*')
+    .eq('girl', GIRL).order('created_at', { ascending: true });
+  if (!data || !data.length) { alert('No data to export.'); return; }
+  const rows = [['date','type','amount','category','note'],
+    ...data.map(t => [
+      new Date(t.created_at).toLocaleDateString('en-US'),
+      t.type, t.amount, t.category||'', t.note||''
+    ])
+  ];
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([csv], {type:'text/csv'})),
+    download: `tinsley-${GIRL.toLowerCase()}.csv`
+  }).click();
+  showToast('CSV downloaded! 📊');
+}
+
+function showToast(msg) {
+  clearTimeout(toastTimer);
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+init();
+</script>
+</body>
+</html>
