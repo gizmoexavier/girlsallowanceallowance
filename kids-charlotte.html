@@ -7,7 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="manifest" href="https://gizmoexavier.github.io/girlsallowanceallowance/manifest-charlotte.json">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="manifest" href="https://gizmoexavier.github.io/girlsallowanceallowance/manifest.json">
 <link rel="apple-touch-icon" href="https://gizmoexavier.github.io/girlsallowanceallowance/BankofTinsleyAppIcon.png">
 <style>
   :root {
@@ -388,6 +389,35 @@
     box-shadow: 0 8px 32px rgba(0,0,0,0.4);
   }
   .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* ── CHART CARD ── */
+  .chart-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 18px 20px;
+  }
+  .chart-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .chart-title {
+    font-size: 12px; text-transform: uppercase;
+    letter-spacing: 1.2px; color: var(--text-muted); font-weight: 700;
+  }
+  .chart-tabs { display: flex; gap: 4px; }
+  .chart-tab {
+    padding: 4px 10px; border: 1.5px solid var(--border);
+    border-radius: 20px; background: var(--surface2);
+    color: var(--text-muted); font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: all var(--transition);
+  }
+  .chart-tab.active {
+    background: color-mix(in srgb, var(--accent) 20%, var(--surface2));
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+  .chart-wrap { position: relative; height: 160px; }
 </style>
 </head>
 <body>
@@ -439,6 +469,22 @@
             <div class="stat-value bonus" id="stat-bonus">$0.00</div>
           </div>
         </div>
+      </div>
+    </div>
+
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <span class="chart-title">Balance Over Time</span>
+        <div class="chart-tabs">
+          <button class="chart-tab active" data-range="week" onclick="setChartRange('week')">Week</button>
+          <button class="chart-tab" data-range="month" onclick="setChartRange('month')">Month</button>
+          <button class="chart-tab" data-range="year" onclick="setChartRange('year')">Year</button>
+          <button class="chart-tab" data-range="all" onclick="setChartRange('all')">All</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="balance-chart"></canvas>
       </div>
     </div>
 
@@ -549,6 +595,7 @@ function render() {
   document.getElementById('balance-display').textContent = fmt(calcBalance());
   renderTransactions();
   renderStats();
+  renderChart();
 }
 
 function renderTransactions() {
@@ -740,6 +787,99 @@ function showToast(msg) {
   t.textContent = msg;
   t.classList.add('show');
   toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+
+// ── CHART ──
+let chartInstance = null;
+let chartRange = 'month';
+
+function setChartRange(range) {
+  chartRange = range;
+  document.querySelectorAll('.chart-tab').forEach(b =>
+    b.classList.toggle('active', b.dataset.range === range)
+  );
+  renderChart();
+}
+
+function renderChart() {
+  const now = new Date();
+  let labels = [], balances = [];
+  const sorted = [...txData].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+  if (chartRange === 'week') {
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now); d.setDate(d.getDate() - i); d.setHours(23,59,59,999);
+      labels.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
+      balances.push(sorted.filter(t => new Date(t.created_at) <= d)
+        .reduce((s, t) => t.type === 'spend' ? s - +t.amount : s + +t.amount, 0));
+    }
+  } else if (chartRange === 'month') {
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), i, 23, 59, 59, 999);
+      if (d > now) break;
+      labels.push(i.toString());
+      balances.push(sorted.filter(t => new Date(t.created_at) <= d)
+        .reduce((s, t) => t.type === 'spend' ? s - +t.amount : s + +t.amount, 0));
+    }
+  } else if (chartRange === 'year') {
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59, 999);
+      labels.push(d.toLocaleDateString('en-US', { month: 'short' }));
+      balances.push(sorted.filter(t => new Date(t.created_at) <= d)
+        .reduce((s, t) => t.type === 'spend' ? s - +t.amount : s + +t.amount, 0));
+    }
+  } else {
+    if (sorted.length) {
+      const first = new Date(sorted[0].created_at);
+      const cursor = new Date(first.getFullYear(), first.getMonth(), 1);
+      while (cursor <= now) {
+        const end = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0, 23, 59, 59, 999);
+        labels.push(cursor.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
+        balances.push(sorted.filter(t => new Date(t.created_at) <= end)
+          .reduce((s, t) => t.type === 'spend' ? s - +t.amount : s + +t.amount, 0));
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+    }
+  }
+
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || accentColor;
+  const ctx = document.getElementById('balance-chart').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: balances,
+        borderColor: accent,
+        backgroundColor: `color-mix(in srgb, ${accent} 15%, transparent)`,
+        borderWidth: 2.5,
+        pointRadius: labels.length > 20 ? 0 : 3,
+        pointHoverRadius: 5,
+        pointBackgroundColor: accent,
+        fill: true,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => `$${ctx.parsed.y.toFixed(2)}` },
+          backgroundColor: '#22222e', borderColor: '#33334a', borderWidth: 1,
+          titleColor: '#f0f0f5', bodyColor: accent, padding: 10, cornerRadius: 8
+        }
+      },
+      scales: {
+        x: { grid: { color: '#33334a', drawBorder: false }, ticks: { color: '#8888a0', font: { size: 11 }, maxTicksLimit: 8 } },
+        y: { grid: { color: '#33334a', drawBorder: false }, ticks: { color: '#8888a0', font: { size: 11 }, callback: v => `$${v}` } }
+      }
+    }
+  });
 }
 
 init();
