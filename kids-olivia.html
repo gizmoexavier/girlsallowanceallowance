@@ -755,7 +755,7 @@ function buildNotifications() {
         <div class="notif-title">${title}</div>
         <div class="notif-sub">${sub}${noteText}</div>
       </div>
-      <div class="notif-amount">+${fmt(+t.amount)}</div>
+      <div class="notif-amount">+${fmt(safeAmt(t))}</div>
       <button class="notif-dismiss" onclick="dismissNotif('${t.id}', this.closest('.notif-card'))">✕</button>
     `;
     stack.appendChild(card);
@@ -792,8 +792,12 @@ async function loadTransactions() {
   if (data) txData = data;
 }
 
+function safeAmt(t) {
+  return parseFloat(t.amount) || 0;
+}
+
 function calcBalance() {
-  return txData.reduce((s, t) => t.type === 'spend' ? s - +t.amount : s + +t.amount, 0);
+  return txData.reduce((s, t) => t.type === 'spend' ? s - safeAmt(t) : s + safeAmt(t), 0);
 }
 
 function fmt(n) {
@@ -835,7 +839,7 @@ function renderTransactions() {
       <div class="tx-row1">
         <span class="tx-type ${t.type}">${t.type}</span>
         ${catTag}
-        <span class="tx-amount ${isSpend ? 'spend' : 'earn'}">${isSpend ? '-' : '+'}${fmt(+t.amount)}</span>
+        <span class="tx-amount ${isSpend ? 'spend' : 'earn'}">${isSpend ? '-' : '+'}${fmt(safeAmt(t))}</span>
       </div>
       <div class="tx-row2">
         <span class="tx-date">${fmtDate(t.created_at)}</span>
@@ -858,7 +862,7 @@ function renderStats() {
 
   let earned = 0, spent = 0, bonus = 0;
   thisMo.forEach(t => {
-    const a = +t.amount;
+    const a = safeAmt(t);
     if (t.type === 'spend') spent += a;
     else if (t.type === 'bonus') bonus += a;
     else earned += a;
@@ -952,14 +956,21 @@ function toggleParty() {
       ['--surface3', 22, 50], ['--text', 85, 80], ['--border', 35, 40]
     ];
     const offsets = props.map((_, i) => i * 25);
-    partyFrame = setInterval(() => {
-      frame += 3;
-      props.forEach(([prop, l, s], i) => {
-        const h = (frame + offsets[i]) % 360;
-        document.documentElement.style.setProperty(prop, `hsl(${h},${s}%,${l}%)`);
-      });
-      document.documentElement.style.setProperty('--accent', `hsl(${(frame * 2) % 360},90%,75%)`);
-    }, 50);
+    let lastTime = null;
+    function partyLoop(ts) {
+      if (!partyMode) return;
+      if (!lastTime || ts - lastTime >= 50) {
+        lastTime = ts;
+        frame += 3;
+        props.forEach(([prop, l, s], i) => {
+          const h = (frame + offsets[i]) % 360;
+          document.documentElement.style.setProperty(prop, `hsl(${h},${s}%,${l}%)`);
+        });
+        document.documentElement.style.setProperty('--accent', `hsl(${(frame * 2) % 360},90%,75%)`);
+      }
+      partyFrame = requestAnimationFrame(partyLoop);
+    }
+    partyFrame = requestAnimationFrame(partyLoop);
 
   } else {
     confetti.classList.remove('show');
@@ -968,7 +979,7 @@ function toggleParty() {
     disco.style.top = '-180px';
     cats.classList.remove('show');
     setTimeout(() => { cats.style.display = 'none'; }, 1000);
-    clearInterval(partyFrame);
+    cancelAnimationFrame(partyFrame);
     const r = document.documentElement.style;
     [['--bg','#0f0f13'],['--surface','#1a1a22'],['--surface2','#22222e'],
      ['--surface3','#2a2a38'],['--text','#f0f0f5'],['--border','#33334a']
@@ -1019,60 +1030,68 @@ function renderChart() {
   let labels = [];
   let balances = [];
 
-  // Build a sorted list of all transactions oldest→newest
-  const sorted = [...txData].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  // Build sorted list oldest→newest with pre-parsed amounts
+  const sorted = [...txData]
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    .map(t => ({ ...t, _amt: safeAmt(t), _ts: new Date(t.created_at).getTime() }));
+
+  // Build running balance: walk sorted once, emit balance at each cutoff timestamp
+  function runningBalances(cutoffs) {
+    let bal = 0, idx = 0;
+    return cutoffs.map(cutoffMs => {
+      while (idx < sorted.length && sorted[idx]._ts <= cutoffMs) {
+        const t = sorted[idx++];
+        bal += t.type === 'spend' ? -t._amt : t._amt;
+      }
+      return bal;
+    });
+  }
 
   if (chartRange === 'week') {
-    // Last 7 days, one point per day
+    const cutoffs = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
       d.setHours(23, 59, 59, 999);
       labels.push(d.toLocaleDateString('en-US', { weekday: 'short' }));
-      const bal = sorted
-        .filter(t => new Date(t.created_at) <= d)
-        .reduce((s, t) => t.type === 'spend' ? s - +t.amount : s + +t.amount, 0);
-      balances.push(bal);
+      cutoffs.push(d.getTime());
     }
+    balances = runningBalances(cutoffs);
+
   } else if (chartRange === 'month') {
-    // Current month, one point per day
+    const cutoffs = [];
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     for (let i = 1; i <= daysInMonth; i++) {
       const d = new Date(now.getFullYear(), now.getMonth(), i, 23, 59, 59, 999);
       if (d > now) break;
       labels.push(i.toString());
-      const bal = sorted
-        .filter(t => new Date(t.created_at) <= d)
-        .reduce((s, t) => t.type === 'spend' ? s - +t.amount : s + +t.amount, 0);
-      balances.push(bal);
+      cutoffs.push(d.getTime());
     }
+    balances = runningBalances(cutoffs);
+
   } else if (chartRange === 'year') {
-    // Last 12 months, one point per month
+    const cutoffs = [];
     for (let i = 11; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59, 999);
       labels.push(d.toLocaleDateString('en-US', { month: 'short' }));
-      const bal = sorted
-        .filter(t => new Date(t.created_at) <= d)
-        .reduce((s, t) => t.type === 'spend' ? s - +t.amount : s + +t.amount, 0);
-      balances.push(bal);
+      cutoffs.push(d.getTime());
     }
+    balances = runningBalances(cutoffs);
+
   } else {
-    // All time — one point per month from first transaction
     if (!sorted.length) {
       labels = []; balances = [];
     } else {
-      const first = new Date(sorted[0].created_at);
-      const start = new Date(first.getFullYear(), first.getMonth(), 1);
-      const cursor = new Date(start);
+      const first = new Date(sorted[0]._ts);
+      const cursor = new Date(first.getFullYear(), first.getMonth(), 1);
+      const cutoffs = [];
       while (cursor <= now) {
         const end = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0, 23, 59, 59, 999);
         labels.push(cursor.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
-        const bal = sorted
-          .filter(t => new Date(t.created_at) <= end)
-          .reduce((s, t) => t.type === 'spend' ? s - +t.amount : s + +t.amount, 0);
-        balances.push(bal);
+        cutoffs.push(end.getTime());
         cursor.setMonth(cursor.getMonth() + 1);
       }
+      balances = runningBalances(cutoffs);
     }
   }
 
@@ -1170,12 +1189,15 @@ function renderChart() {
 
     if (delta >= PTR_THRESHOLD) {
       refreshing = true;
+      const grid = document.querySelector('.main-grid');
       indicator.classList.add('ptr-ready', 'ptr-spinning');
       indicator.style.transform = 'translateX(-50%) translateY(16px)';
       indicator.querySelector('span').textContent = '↻';
+      if (grid) { grid.style.transition = 'opacity 0.2s'; grid.style.opacity = '0.4'; }
       await loadTransactions();
       render();
       buildNotifications();
+      if (grid) { grid.style.opacity = '1'; }
       refreshing = false;
     }
 
