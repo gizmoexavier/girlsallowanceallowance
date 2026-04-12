@@ -1,0 +1,31 @@
+// Bank of Tinsley — Parent Service Worker
+// Minimal SW: enables PWA install prompt, does not cache app shell
+// (Supabase data is always fetched live; caching would cause stale balances)
+
+const SW_VERSION = 'bot-parent-v1';
+
+self.addEventListener('install', () => {
+  // Skip waiting so the new SW activates immediately
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys
+          .filter(k => k !== SW_VERSION)
+          .map(k => caches.delete(k))
+      )
+    ).then(() => self.clients.claim())
+  );
+});
+
+// Network-first for everything — we never want cached financial data
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    fetch(event.request).catch(() =>
+      caches.match(event.request)
+    )
+  );
+});
