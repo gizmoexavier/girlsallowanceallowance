@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Bank of Tinsley">
 <meta name="theme-color" content="#0f0f13">
 <title>Bank of Tinsley</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -321,11 +322,11 @@
       <div class="logo-wrap">
         <img src="https://github.com/gizmoexavier/girlsallowanceallowance/blob/main/Bankoftinsleylogo.png?raw=true" alt="Bank of Tinsley">
       </div>
-      <button class="gear-btn" onclick="openSettings()">⚙️</button>
+      <button class="gear-btn" onclick="openSettings()"><i class="ti ti-settings"></i></button>
     </div>
     <div class="tabs">
-      <button class="tab-btn active" id="tab-olivia" onclick="switchGirl('Olivia')">Olivia</button>
-      <button class="tab-btn" id="tab-charlotte" onclick="switchGirl('Charlotte')">Charlotte</button>
+      <button class="tab-btn active" id="tab-olivia" onclick="switchGirl('Olivia')"><i class="ti ti-user"></i> Olivia</button>
+      <button class="tab-btn" id="tab-charlotte" onclick="switchGirl('Charlotte')"><i class="ti ti-user"></i> Charlotte</button>
     </div>
   </div>
 
@@ -333,7 +334,7 @@
 
     <!-- 1. BALANCE -->
     <div class="balance-card">
-      <div class="balance-label">Current Balance</div>
+      <div class="balance-label"><i class="ti ti-wallet"></i> Current Balance</div>
       <div class="balance-amount" id="balance-display">$0.00</div>
       <div class="balance-name" id="balance-name">Loading...</div>
     </div>
@@ -355,18 +356,18 @@
     </div>
 
     <!-- 3. ADD TRANSACTION -->
-    <div class="warn-banner" id="warn-banner">⚠️ This will put Charlotte below $10.</div>
+    <div class="warn-banner" id="warn-banner"><i class="ti ti-alert-triangle"></i> This will put Charlotte below $10.</div>
     <div class="card add-action">
       <div class="card-header" id="form-toggle" onclick="toggleForm()">
-        <span>➕ Add Transaction</span>
+        <span><i class="ti ti-plus"></i> Add Transaction</span>
         <span class="chevron">▼</span>
       </div>
       <div class="card-body" id="form-body" style="display:none">
         <div class="form-group">
           <label>Type</label>
           <div class="segment" id="type-seg">
-            <button class="seg-btn active" data-val="bonus" onclick="selectType('bonus')">Bonus</button>
-            <button class="seg-btn" data-val="spend" onclick="selectType('spend')">Spend</button>
+            <button class="seg-btn active" data-val="bonus" onclick="selectType('bonus')"><i class="ti ti-star"></i> Bonus</button>
+            <button class="seg-btn" data-val="spend" onclick="selectType('spend')"><i class="ti ti-shopping-cart"></i> Spend</button>
           </div>
         </div>
         <div class="form-group">
@@ -381,7 +382,7 @@
           <label>Note (optional)</label>
           <input type="text" id="tx-note" placeholder="What was this for?">
         </div>
-        <button class="btn btn-primary" onclick="submitTransaction()">Add Transaction</button>
+        <button class="btn btn-primary" onclick="submitTransaction()"><i class="ti ti-plus"></i> Add Transaction</button>
       </div>
     </div>
 
@@ -399,6 +400,7 @@
 
 <!-- UNDO TOAST -->
 <div class="undo-toast" id="undo-toast">
+  <i class="ti ti-rotate-left"></i>
   <span class="undo-toast-text" id="undo-text">Transaction added</span>
   <button class="undo-action" id="undo-btn" onclick="undoLast()">Undo</button>
   <div class="undo-bar" id="undo-bar"></div>
@@ -415,10 +417,10 @@
     <div id="history-summary"></div>
     <!-- Filters -->
     <div class="history-filter">
-      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">All</button>
-      <button class="filter-btn" data-filter="allowance" onclick="setFilter('allowance')">Allowance</button>
-      <button class="filter-btn" data-filter="bonus" onclick="setFilter('bonus')">Bonus</button>
-      <button class="filter-btn" data-filter="spend" onclick="setFilter('spend')">Spend</button>
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')"><i class="ti ti-filter"></i> All</button>
+      <button class="filter-btn" data-filter="allowance" onclick="setFilter('allowance')"><i class="ti ti-calendar-dollar"></i> Allowance</button>
+      <button class="filter-btn" data-filter="bonus" onclick="setFilter('bonus')"><i class="ti ti-star"></i> Bonus</button>
+      <button class="filter-btn" data-filter="spend" onclick="setFilter('spend')"><i class="ti ti-shopping-cart"></i> Spend</button>
     </div>
     <div class="tx-list" id="history-list"></div>
   </div>
@@ -432,7 +434,7 @@
   </div>
   <div class="panel-content">
     <div class="settings-group">
-      <div class="settings-group-title">Weekly Allowance</div>
+      <div class="settings-group-title"><i class="ti ti-coin"></i> Weekly Allowance</div>
       <div class="settings-row">
         <label style="color:var(--olivia)">Olivia</label>
         <input type="number" id="s-olivia-amt" min="0" step="0.50">
@@ -445,7 +447,7 @@
       </div>
     </div>
     <div class="settings-group">
-      <div class="settings-group-title">Accent Colors</div>
+      <div class="settings-group-title"><i class="ti ti-palette"></i> Accent Colors</div>
       <div class="color-row">
         <span class="color-row-label" id="color-label-olivia" style="color:var(--olivia)">Olivia</span>
         <div class="color-picker-wrap">
@@ -466,18 +468,18 @@
       </div>
     </div>
     <div class="settings-group">
-      <div class="settings-group-title">Data</div>
-      <button class="btn btn-ghost" onclick="exportCSV()">📤 Export to CSV</button>
+      <div class="settings-group-title"><i class="ti ti-download"></i> Export</div>
+      <button class="btn btn-ghost" onclick="exportCSV()"><i class="ti ti-download"></i> Export to CSV</button>
     </div>
     <div class="settings-group">
-      <div class="settings-group-title">Easter Egg</div>
+      <div class="settings-group-title"><i class="ti ti-confetti"></i> Easter Egg</div>
       <button class="btn party-btn" onclick="toggleParty()">🌈 PARTY TIME</button>
     </div>
   </div>
 </div>
 
 <script>
-const API_URL = 'https://script.google.com/macros/s/AKfycbyPqR6gKu3PKDwAACU7PnBopmvtwZ71FRug-GZxG4Ogy3YZimD69NMmJw-K8tTswGTu/exec';
+const API_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
 
 async function apiGet(action, params = {}) {
   const url = new URL(API_URL);
@@ -535,6 +537,11 @@ const CAT_EMOJI = {
   'Extra Chores':'🧹','Yardwork':'🌿','Gift Card / Cash':'💵','Other':'⭐'
 };
 const TYPE_EMOJI = { allowance:'💰', bonus:'🌟', spend:'🛍️' };
+const TYPE_ICON = {
+  allowance:'<i class="ti ti-calendar-dollar"></i>',
+  bonus:'<i class="ti ti-star"></i>',
+  spend:'<i class="ti ti-shopping-cart"></i>'
+};
 
 let activeGirl = 'Olivia';
 let txData = { Olivia: [], Charlotte: [] };
@@ -619,7 +626,7 @@ function renderRecent() {
 
 function buildTxHTML(t, inHistory) {
   const isSpend = t.type === 'spend';
-  const typeEmoji = TYPE_EMOJI[t.type] || '';
+  const typeIcon = TYPE_ICON[t.type] || '';
   const catEmoji = t.category ? (CAT_EMOJI[t.category] || '') : '';
   const catTag = t.category ? `<span class="tx-cat-tag">${catEmoji} ${t.category}</span>` : '';
   const noteHtml = t.note ? `<span class="tx-note"> · ${t.note}</span>` : '';
@@ -656,15 +663,15 @@ function buildTxHTML(t, inHistory) {
   const cls = isEditing ? ' editing-mode' : (isConfirm ? ' confirming' : '');
   const actions = inHistory && !isEditing && !isConfirm ? `
     <div class="tx-actions">
-      <button class="icon-btn" onclick="startEdit('${t.id}')">✏️</button>
-      <button class="icon-btn" onclick="startDelete('${t.id}')">🗑️</button>
+      <button class="icon-btn" onclick="startEdit('${t.id}')"><i class="ti ti-pencil"></i></button>
+      <button class="icon-btn" onclick="startDelete('${t.id}')"><i class="ti ti-trash"></i></button>
     </div>` : '';
 
   return `
     <div class="tx-item${cls}" id="tx-${t.id}">
       <div class="tx-main">
         <div class="tx-row1">
-          <span class="tx-type ${t.type}">${typeEmoji} ${t.type}</span>
+          <span class="tx-type ${t.type}">${typeIcon} ${t.type}</span>
           ${catTag}
           <span class="tx-amount ${isSpend?'spend':'earn'}">${isSpend?'-':'+'}${fmt(safeAmt(t))}</span>
         </div>
