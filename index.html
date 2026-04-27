@@ -1,19 +1,3 @@
-<!--
-  SUPABASE SETUP — run these SQL queries in Supabase SQL Editor before first use:
-
-  alter table transactions enable row level security;
-  create policy "Allow anon read" on transactions for select using (true);
-  create policy "Allow anon insert" on transactions for insert with check (true);
-  create policy "Allow anon delete" on transactions for delete using (true);
-  create policy "Allow anon update" on transactions for update using (true);
-
-  alter table settings enable row level security;
-  create policy "Allow anon read" on settings for select using (true);
-  create policy "Allow anon update" on settings for update using (true);
-
-  insert into settings (girl, weekly_amount) values ('Olivia', 11), ('Charlotte', 4)
-  on conflict (girl) do nothing;
--->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,7 +10,6 @@
 <title>Bank of Tinsley</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="manifest" href="https://gizmoexavier.github.io/girlsallowanceallowance/manifest-parent.json">
 <link rel="apple-touch-icon" href="https://gizmoexavier.github.io/girlsallowanceallowance/BankofTinsleyAppIcon.png">
@@ -494,10 +477,54 @@
 </div>
 
 <script>
-const SUPABASE_URL = "https://wtvyqppmtswdejxenqsb.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0dnlxcHBtdHN3ZGVqeGVucXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0OTExOTEsImV4cCI6MjA5MTA2NzE5MX0.xrddQ-3HegZYG90nrYEETvwisndlI6BJ1B6g6GEAEeo";
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const API_URL = 'YOUR_APPS_SCRIPT_URL_HERE';
+
+async function apiGet(action, params = {}) {
+  const url = new URL(API_URL);
+  url.searchParams.set('action', action);
+  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(`API ${action} failed: ${res.status}`);
+  const data = await res.json();
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
+
+async function apiPost(action, payload) {
+  const res = await fetch(`${API_URL}?action=${encodeURIComponent(action)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(`API ${action} failed: ${res.status}`);
+  const data = await res.json();
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
+
+function fetchTransactions(girl) {
+  return apiGet('getTransactions', { girl });
+}
+
+function addTransaction(girl, type, amount, note) {
+  return apiPost('addTransaction', { girl, type, amount, note });
+}
+
+function deleteTransaction(id) {
+  return apiPost('deleteTransaction', { id });
+}
+
+function fetchSettings() {
+  return apiGet('getSettings');
+}
+
+function updateSettings(girl, weeklyAmount) {
+  return apiPost('updateSettings', { girl, weekly_amount: weeklyAmount });
+}
+
+function updateTransaction(id, amount, note) {
+  return apiPost('updateTransaction', { id, amount, note });
+}
 
 const ACCENT = { Olivia: '#FFB7D9', Charlotte: '#C0FFCB' };
 const SPEND_CATS = ['Robux/Gaming','Art & Crafts','Food & Treats','Clothes & Accessories','Books','School Store','Other'];
@@ -537,23 +564,25 @@ async function init() {
 }
 
 async function loadSettings() {
-  const { data } = await sb.from('settings').select('*');
-  if (data) {
-    data.forEach(r => {
-      cfg[r.girl] = parseFloat(r.weekly_amount);
-      if (r.color) applyColor(r.girl, r.color);
-    });
+  const data = await fetchSettings();
+  if (data) data.forEach(r => cfg[r.girl] = parseFloat(r.weekly_amount));
+  try {
+    const colors = JSON.parse(localStorage.getItem('tinsleyColors') || '{}');
+    Object.entries(colors).forEach(([girl, color]) => applyColor(girl, color));
+  } catch(err) {
+    console.warn('Could not load saved colors:', err);
   }
   document.getElementById('s-olivia-amt').value = cfg.Olivia;
   document.getElementById('s-charlotte-amt').value = cfg.Charlotte;
 }
 
 async function loadTransactions() {
-  const { data } = await sb.from('transactions').select('*').order('created_at', { ascending: false });
-  if (data) {
-    txData.Olivia = data.filter(t => t.girl === 'Olivia');
-    txData.Charlotte = data.filter(t => t.girl === 'Charlotte');
-  }
+  const [olivia, charlotte] = await Promise.all([
+    fetchTransactions('Olivia'),
+    fetchTransactions('Charlotte')
+  ]);
+  txData.Olivia = [...(olivia || [])].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  txData.Charlotte = [...(charlotte || [])].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
 }
 
 function fmt(n) {
@@ -601,23 +630,23 @@ function buildTxHTML(t, inHistory) {
     const catHtml = catOpts.length ? `
       <div class="form-group">
         <label>Category</label>
-        <select id="e-cat-${t.id}">${catOpts.map(c => `<option${c===t.category?' selected':''}}>${c}</option>`).join('')}</select>
+        <select id="e-cat-${t.id}">${catOpts.map(c => `<option${c===t.category?' selected':''}>${c}</option>`).join('')}</select>
       </div>` : '';
     extra = `
       <div class="edit-form">
         <div class="edit-form-row">
           <div class="form-group"><label>Amount</label><input type="number" id="e-amt-${t.id}" value="${t.amount}" min="0.01" step="0.01"></div>
-          <div class="form-group"><label>Note</label><input type="text" id="e-note-${t.id}" value="${t.note||''}}"></div>
+          <div class="form-group"><label>Note</label><input type="text" id="e-note-${t.id}" value="${t.note||''}"></div>
         </div>
         ${catHtml}
         <div class="edit-btns">
-          <button class="btn btn-primary btn-sm" onclick="saveEdit(${t.id})">Save</button>
+          <button class="btn btn-primary btn-sm" onclick="saveEdit('${t.id}')">Save</button>
           <button class="btn btn-ghost btn-sm" onclick="cancelEdit()">Cancel</button>
         </div>
       </div>`;
   } else if (inHistory && confirmDeleteId === t.id) {
     extra = `<div class="confirm-delete">
-      <button class="btn btn-danger btn-sm" onclick="doDelete(${t.id})">Delete</button>
+      <button class="btn btn-danger btn-sm" onclick="doDelete('${t.id}')">Delete</button>
       <button class="btn btn-ghost btn-sm" onclick="cancelDelete()">Cancel</button>
     </div>`;
   }
@@ -627,8 +656,8 @@ function buildTxHTML(t, inHistory) {
   const cls = isEditing ? ' editing-mode' : (isConfirm ? ' confirming' : '');
   const actions = inHistory && !isEditing && !isConfirm ? `
     <div class="tx-actions">
-      <button class="icon-btn" onclick="startEdit(${t.id})">✏️</button>
-      <button class="icon-btn" onclick="startDelete(${t.id})">🗑️</button>
+      <button class="icon-btn" onclick="startEdit('${t.id}')">✏️</button>
+      <button class="icon-btn" onclick="startDelete('${t.id}')">🗑️</button>
     </div>` : '';
 
   return `
@@ -718,10 +747,15 @@ async function submitTransaction() {
   if (!amt || amt <= 0) { alert('Enter a valid amount.'); return; }
   const note = document.getElementById('tx-note').value.trim();
   const category = document.getElementById('tx-cat').value;
-  const { data, error } = await sb.from('transactions').insert({
-    girl: activeGirl, type: selType, amount: amt, note: note||null, category
-  }).select().single();
-  if (error) { alert('Error saving.'); console.error(error); return; }
+  let data;
+  try {
+    data = await addTransaction(activeGirl, selType, amt, note || null);
+    data.category = category;
+  } catch(error) {
+    alert('Error saving.');
+    console.error(error);
+    return;
+  }
   txData[activeGirl].unshift(data);
   lastTxId = data.id;
   document.getElementById('tx-amount').value = '';
@@ -760,8 +794,13 @@ async function undoLast() {
   if (!lastTxId) return;
   clearTimeout(undoTimer);
   document.getElementById('undo-toast').classList.remove('show');
-  const { error } = await sb.from('transactions').delete().eq('id', lastTxId);
-  if (error) { alert('Could not undo.'); return; }
+  try {
+    await deleteTransaction(lastTxId);
+  } catch(error) {
+    console.error(error);
+    alert('Could not undo.');
+    return;
+  }
   txData[activeGirl] = txData[activeGirl].filter(t => t.id !== lastTxId);
   lastTxId = null; render();
 }
@@ -791,8 +830,13 @@ async function saveEdit(id) {
   const catEl = document.getElementById(`e-cat-${id}`);
   const category = catEl ? catEl.value : null;
   if (!amt || amt <= 0) { alert('Enter a valid amount.'); return; }
-  const { error } = await sb.from('transactions').update({ amount: amt, note: note||null, category }).eq('id', id);
-  if (error) { alert('Error saving.'); return; }
+  try {
+    await updateTransaction(id, amt, note || null);
+  } catch(error) {
+    console.error(error);
+    alert('Error saving.');
+    return;
+  }
   const t = txData[activeGirl].find(t => t.id === id);
   if (t) { t.amount = amt; t.note = note||null; t.category = category; }
   editingId = null; render(); renderHistoryPanel();
@@ -802,8 +846,13 @@ async function saveEdit(id) {
 function startDelete(id) { confirmDeleteId = id; editingId = null; renderHistoryPanel(); }
 function cancelDelete() { confirmDeleteId = null; renderHistoryPanel(); }
 async function doDelete(id) {
-  const { error } = await sb.from('transactions').delete().eq('id', id);
-  if (error) { alert('Error deleting.'); return; }
+  try {
+    await deleteTransaction(id);
+  } catch(error) {
+    console.error(error);
+    alert('Error deleting.');
+    return;
+  }
   txData[activeGirl] = txData[activeGirl].filter(t => t.id !== id);
   if (lastTxId === id) lastTxId = null;
   confirmDeleteId = null; render(); renderHistoryPanel();
@@ -816,8 +865,13 @@ function closeSettings() { document.getElementById('settings-panel').classList.r
 async function saveAllowance(girl) {
   const amt = parseFloat(document.getElementById(`s-${girl.toLowerCase()}-amt`).value);
   if (isNaN(amt) || amt < 0) { alert('Enter a valid amount.'); return; }
-  const { error } = await sb.from('settings').update({ weekly_amount: amt }).eq('girl', girl);
-  if (error) { alert('Error saving.'); return; }
+  try {
+    await updateSettings(girl, amt);
+  } catch(error) {
+    console.error(error);
+    alert('Error saving.');
+    return;
+  }
   cfg[girl] = amt;
   showMsg(`${girl}'s allowance updated to $${amt.toFixed(2)}`);
 }
@@ -842,22 +896,24 @@ function swatchPreview(girl, color) {
 
 async function saveColor(girl) {
   const color = document.getElementById(`color-${girl.toLowerCase()}`).value;
-  const { error } = await sb.from('settings').update({ color }).eq('girl', girl);
-  if (error) { alert('Error saving color.'); return; }
+  const colors = JSON.parse(localStorage.getItem('tinsleyColors') || '{}');
+  colors[girl] = color;
+  localStorage.setItem('tinsleyColors', JSON.stringify(colors));
   applyColor(girl, color);
   showMsg(`${girl}'s color saved!`);
 }
 
 async function resetColor(girl) {
   const defaults = { Olivia: '#FFB7D9', Charlotte: '#C0FFCB' };
-  const { error } = await sb.from('settings').update({ color: null }).eq('girl', girl);
-  if (error) { alert('Error resetting color.'); return; }
+  const colors = JSON.parse(localStorage.getItem('tinsleyColors') || '{}');
+  delete colors[girl];
+  localStorage.setItem('tinsleyColors', JSON.stringify(colors));
   applyColor(girl, defaults[girl]);
   showMsg(`${girl}'s color reset!`);
 }
 
 async function exportCSV() {
-  const { data } = await sb.from('transactions').select('*').order('created_at', { ascending: true });
+  const data = [...txData.Olivia, ...txData.Charlotte].sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
   if (!data || !data.length) { alert('No data to export.'); return; }
   const rows = [['date','girl','type','amount','category','note'],
     ...data.map(t => [new Date(t.created_at).toLocaleDateString('en-US'), t.girl, t.type, t.amount, t.category||'', t.note||''])
