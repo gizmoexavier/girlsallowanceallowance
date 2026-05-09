@@ -11,7 +11,6 @@
 <title>Bank of Tinsley — Olivia</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Arvo:wght@700&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="manifest" href="https://gizmoexavier.github.io/girlsallowanceallowance/manifest-olivia.json">
 <link rel="apple-touch-icon" href="https://gizmoexavier.github.io/girlsallowanceallowance/BankofTinsleyAppIcon.png">
 <style>
@@ -565,9 +564,40 @@
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }
   }
+  #splash-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #0f0f13;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 32px;
+    transition: opacity 0.4s ease;
+  }
+  #splash-screen.fade-out { opacity: 0; pointer-events: none; }
+  #splash-screen img { width: 260px; max-width: 80vw; }
+  .splash-bar-track {
+    width: 260px; max-width: 80vw; height: 4px;
+    background: #22222e; border-radius: 2px; overflow: hidden;
+  }
+  .splash-bar {
+    height: 100%; width: 40%; border-radius: 2px;
+    background: #FFB7D9;
+    animation: splashSlide 1.2s ease-in-out infinite;
+  }
+  @keyframes splashSlide {
+    0%   { transform: translateX(-100%); }
+    50%  { transform: translateX(150%); }
+    100% { transform: translateX(350%); }
+  }
 </style>
 </head>
 <body>
+
+<div id="splash-screen">
+  <img src="https://github.com/gizmoexavier/girlsallowanceallowance/blob/main/Bankoftinsleylogo.png?raw=true" alt="Bank of Tinsley">
+  <div class="splash-bar-track">
+    <div class="splash-bar"></div>
+  </div>
+</div>
 
 <!-- PARTY OVERLAYS — all hidden on load -->
 <div class="confetti-overlay" id="confetti"></div>
@@ -689,10 +719,18 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const SUPABASE_URL = "https://wtvyqppmtswdejxenqsb.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind0dnlxcHBtdHN3ZGVqeGVucXNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0OTExOTEsImV4cCI6MjA5MTA2NzE5MX0.xrddQ-3HegZYG90nrYEETvwisndlI6BJ1B6g6GEAEeo";
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const API_URL = 'https://script.google.com/macros/s/AKfycbyPqR6gKu3PKDwAACU7PnBopmvtwZ71FRug-GZxG4Ogy3YZimD69NMmJw-K8tTswGTu/exec';
+
+async function apiGet(action, params = {}) {
+  const url = new URL(API_URL);
+  url.searchParams.set('action', action);
+  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(`API ${action} failed: ${res.status}`);
+  const data = await res.json();
+  if (data && data.error) throw new Error(data.error);
+  return data;
+}
 
 const GIRL = 'Olivia';
 const DEFAULT_COLOR = '#FFB7D9';
@@ -774,26 +812,37 @@ function dismissNotif(id, cardEl) {
   setTimeout(() => cardEl.remove(), 260);
 }
 
-async function init() {
-  await loadSettings();
-  await loadTransactions();
-  render();
-  buildNotifications();
+function hideSplash() {
+  const splash = document.getElementById('splash-screen');
+  if (!splash) return;
+  splash.classList.add('fade-out');
+  setTimeout(() => splash.remove(), 420);
 }
 
-async function loadSettings() {
-  const { data } = await sb.from('settings').select('*').eq('girl', GIRL).single();
-  if (data && data.color) {
-    accentColor = data.color;
-    applyColor(data.color);
-    document.getElementById('color-picker').value = data.color;
+async function init() {
+  try {
+    await loadSettings();
+    await loadTransactions();
+    render();
+    buildNotifications();
+  } catch (err) {
+    console.error(err);
+    showToast('Something went wrong loading data');
+  } finally {
+    hideSplash();
   }
 }
 
+async function loadSettings() {
+  try {
+    const saved = localStorage.getItem(`tinsleyColor_${GIRL}`);
+    if (saved) { accentColor = saved; applyColor(saved); document.getElementById('color-picker').value = saved; }
+  } catch(e) { /* ignore */ }
+}
+
 async function loadTransactions() {
-  const { data } = await sb.from('transactions').select('*')
-    .eq('girl', GIRL).order('created_at', { ascending: false });
-  if (data) txData = data;
+  const data = await apiGet('getTransactions', { girl: GIRL });
+  if (data) txData = [...data].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 }
 
 function safeAmt(t) {
@@ -915,15 +964,13 @@ function swatchPreview(color) {
 
 async function saveColor() {
   const color = document.getElementById('color-picker').value;
-  const { error } = await sb.from('settings').update({ color }).eq('girl', GIRL);
-  if (error) { alert('Error saving.'); return; }
+  localStorage.setItem(`tinsleyColor_${GIRL}`, color);
   applyColor(color);
   showToast('Color saved! 🎨');
 }
 
 async function resetColor() {
-  const { error } = await sb.from('settings').update({ color: null }).eq('girl', GIRL);
-  if (error) { alert('Error resetting.'); return; }
+  localStorage.removeItem(`tinsleyColor_${GIRL}`);
   applyColor(DEFAULT_COLOR);
   document.getElementById('color-picker').value = DEFAULT_COLOR;
   showToast('Color reset!');
@@ -993,16 +1040,16 @@ function toggleParty() {
 }
 
 async function exportCSV() {
-  const { data } = await sb.from('transactions').select('*')
-    .eq('girl', GIRL).order('created_at', { ascending: true });
-  if (!data || !data.length) { alert('No data to export.'); return; }
+  const data = await apiGet('getTransactions', { girl: GIRL });
+  const sorted = [...(data || [])].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  if (!sorted.length) { alert('No data to export.'); return; }
   const rows = [['date','type','amount','category','note'],
-    ...data.map(t => [
+    ...sorted.map(t => [
       new Date(t.created_at).toLocaleDateString('en-US'),
       t.type, t.amount, t.category||'', t.note||''
     ])
   ];
-  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(new Blob([csv], {type:'text/csv'})),
     download: `tinsley-${GIRL.toLowerCase()}.csv`
