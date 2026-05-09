@@ -312,9 +312,40 @@
     from { transform: rotate(0deg); }
     to   { transform: rotate(360deg); }
   }
+  #splash-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #0f0f13;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 32px;
+    transition: opacity 0.4s ease;
+  }
+  #splash-screen.fade-out { opacity: 0; pointer-events: none; }
+  #splash-screen img { width: 260px; max-width: 80vw; }
+  .splash-bar-track {
+    width: 260px; max-width: 80vw; height: 4px;
+    background: #22222e; border-radius: 2px; overflow: hidden;
+  }
+  .splash-bar {
+    height: 100%; width: 40%; border-radius: 2px;
+    background: #ffffff;
+    animation: splashSlide 1.2s ease-in-out infinite;
+  }
+  @keyframes splashSlide {
+    0%   { transform: translateX(-100%); }
+    50%  { transform: translateX(150%); }
+    100% { transform: translateX(350%); }
+  }
 </style>
 </head>
 <body>
+
+<div id="splash-screen">
+  <img src="https://github.com/gizmoexavier/girlsallowanceallowance/blob/main/Bankoftinsleylogo.png?raw=true" alt="Bank of Tinsley">
+  <div class="splash-bar-track">
+    <div class="splash-bar"></div>
+  </div>
+</div>
 
 <div class="app" id="app">
   <div class="header">
@@ -559,6 +590,13 @@ let chartInstance = null;
 let chartRange = 'month';
 
 // ── INIT ──
+function hideSplash() {
+  const splash = document.getElementById('splash-screen');
+  if (!splash) return;
+  splash.classList.add('fade-out');
+  setTimeout(() => splash.remove(), 420);
+}
+
 async function init() {
   try {
     await loadSettings();
@@ -567,6 +605,8 @@ async function init() {
   } catch(err) {
     console.error(err);
     showMsg('Something went wrong loading data');
+  } finally {
+    hideSplash();
   }
 }
 
